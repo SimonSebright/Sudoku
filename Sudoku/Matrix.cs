@@ -19,7 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SimonSebright.Sudoku
 {
@@ -28,11 +27,11 @@ namespace SimonSebright.Sudoku
         public MatrixException(string message) : base(message) { }
     }
 
-    static public class Settings
+    public static class Settings
     {
-        public static int GridSize { get { return 9; } }
-        public static int SquareSize { get { return 3; } }
-        public static int NumSquares { get { return GridSize / SquareSize; } }
+        public static int GridSize => 9;
+        public static int SquareSize => 3;
+        public static int NumSquares => GridSize / SquareSize;
     }
 
     public enum CellValue
@@ -74,7 +73,7 @@ namespace SimonSebright.Sudoku
             m_cellValue = CellValue.Blank;
         }
 
-        static public List<CellValue> AllCellValues()
+        public static List<CellValue> AllCellValues()
         {
             List<CellValue> cellValues = new List<CellValue>();
 
@@ -88,7 +87,7 @@ namespace SimonSebright.Sudoku
             return cellValues;
         }
 
-        static public List<CellValue> AllCellValuesRandom()
+        public static List<CellValue> AllCellValuesRandom()
         {
             List<CellValue> straight = AllCellValues();
             List<CellValue> random = new List<CellValue>();
@@ -121,73 +120,30 @@ namespace SimonSebright.Sudoku
             return CellValueToString(m_cellValue);
         }
 
-        public bool Original { get { return (m_cellType == CellType.Original) &&
-                                            (m_cellValue != CellValue.Blank); } }
+        public bool Original => m_cellType == CellType.Original && m_cellValue != CellValue.Blank;
 
-        public CellValue CellValue
-        {
-            get { return m_cellValue; }
-        }
-        public CellType CellType
-        {
-            get { return m_cellType; }
-        }
+        public CellValue CellValue => m_cellValue;
 
-        public int I
-        {
-            get
-            {
-                return m_matrix.I( this );
-            }
-        }
+        public CellType CellType => m_cellType;
 
-        public int J
-        {
-            get
-            {
-                return m_matrix.J(this);
-            }
-        }
+        public int I => m_matrix.I( this );
 
-        public Row Row
-        {
-            get
-            {
-                return m_matrix.Row(this);
-            }
-        }
+        public int J => m_matrix.J(this);
 
-        public Column Column
-        {
-            get
-            {
-                return m_matrix.Column(this);
-            }
-        }
+        public Row Row => m_matrix.Row(this);
 
-        public Square Square
-        {
-            get
-            {
-                return m_matrix.Square(this);
-            }
-        }
+        public Column Column => m_matrix.Column(this);
 
-        public List<CellExclusionGroup> ExclusionGroups()
-        {
-            List<CellExclusionGroup> groups = new List<CellExclusionGroup>();
-            groups.Add(Row);
-            groups.Add(Column);
-            groups.Add(Square);
-            return groups;
-        }
+        public Square Square => m_matrix.Square(this);
+
+        public List<CellExclusionGroup> ExclusionGroups => new List<CellExclusionGroup> {Row, Column, Square};
 
         internal Matrix Matrix
         {
-            set { m_matrix = value; }
+            set => m_matrix = value;
         }
 
-        private Matrix m_matrix = null;
+        private Matrix m_matrix;
         private CellValue m_cellValue;
         private CellType m_cellType;
 
@@ -249,7 +205,7 @@ namespace SimonSebright.Sudoku
             {
                 if (i < 0 || i >= Settings.GridSize)
                 {
-                    throw new ArgumentOutOfRangeException("Column access out of range: " + i.ToString());
+                    throw new ArgumentOutOfRangeException("Column access out of range: " + i);
                 }
 
                 return m_cells[i];
@@ -258,7 +214,7 @@ namespace SimonSebright.Sudoku
 
         public override List<Cell> GetCells() { return m_cells; }
 
-        private List<Cell> m_cells;
+        private readonly List<Cell> m_cells;
 
         public static List<Cell> GetBlankRow()
         {
@@ -285,7 +241,7 @@ namespace SimonSebright.Sudoku
             {
                 if (j < 0 || j >= Settings.GridSize)
                 {
-                    throw new ArgumentOutOfRangeException("Row access out of range: " + j.ToString());
+                    throw new ArgumentOutOfRangeException("Row access out of range: " + j);
                 }
 
                 return m_cells[j];
@@ -294,7 +250,7 @@ namespace SimonSebright.Sudoku
 
         public override List<Cell> GetCells() { return m_cells; }
 
-        private List<Cell> m_cells;
+        private readonly List<Cell> m_cells;
     }
 
     public class Square : CellExclusionGroup
@@ -310,12 +266,12 @@ namespace SimonSebright.Sudoku
             {
                 if (j < 0 || j >= Settings.SquareSize)
                 {
-                    throw new ArgumentOutOfRangeException("Row square access out of range: " + j.ToString());
+                    throw new ArgumentOutOfRangeException("Row square access out of range: " + j);
                 }
 
                 if (i < 0 || i >= Settings.SquareSize)
                 {
-                    throw new ArgumentOutOfRangeException("Column square access out of range: " + i.ToString());
+                    throw new ArgumentOutOfRangeException("Column square access out of range: " + i);
                 }
 
                 return m_rows[j][i];
@@ -332,7 +288,7 @@ namespace SimonSebright.Sudoku
             return cells;
         }
 
-        private List<List<Cell>> m_rows;
+        private readonly List<List<Cell>> m_rows;
     }
 
     public class Matrix
@@ -392,9 +348,9 @@ namespace SimonSebright.Sudoku
 
         internal int I(Cell cell)
         {
-            for (int j = 0; j < m_rows.Count; ++j)
+            foreach (Row t in m_rows)
             {
-                List<Cell> rowCells = m_rows[j].GetCells();
+                List<Cell> rowCells = t.GetCells();
                 for (int i = 0; i < rowCells.Count; ++i)
                 {
                     if (rowCells[i] == cell)
@@ -404,7 +360,7 @@ namespace SimonSebright.Sudoku
                 }
             }
 
-            throw new ArgumentOutOfRangeException("Cannot find I property for cell: " + cell.ToString());
+            throw new ArgumentOutOfRangeException("Cannot find I property for cell: " + cell);
         }
 
         internal int J(Cell cell)
@@ -412,23 +368,23 @@ namespace SimonSebright.Sudoku
             for (int j = 0; j < m_rows.Count; ++j)
             {
                 List<Cell> rowCells = m_rows[j].GetCells();
-                for (int i = 0; i < rowCells.Count; ++i)
+                foreach (Cell t in rowCells)
                 {
-                    if (rowCells[i] == cell)
+                    if (t == cell)
                     {
                         return j;
                     }
                 }
             }
 
-            throw new ArgumentOutOfRangeException("Cannot find I property for cell: " + cell.ToString());
+            throw new ArgumentOutOfRangeException("Cannot find I property for cell: " + cell);
         }
 
         public Row Row(int j)
         {
             if (j < 0 || j >= Settings.GridSize)
             {
-                throw new ArgumentOutOfRangeException("Column access out of range: " + j.ToString());
+                throw new ArgumentOutOfRangeException("Column access out of range: " + j);
             }
 
             return m_rows[j];
@@ -525,11 +481,11 @@ namespace SimonSebright.Sudoku
         {
             if (i < 0 || i >= Settings.GridSize / Settings.SquareSize)
             {
-                throw new ArgumentOutOfRangeException("Square access column out of range: " + i.ToString());
+                throw new ArgumentOutOfRangeException("Square access column out of range: " + i);
             }
             if (j < 0 || j >= Settings.GridSize / Settings.SquareSize)
             {
-                throw new ArgumentOutOfRangeException("Square access row out of range: " + j.ToString());
+                throw new ArgumentOutOfRangeException("Square access row out of range: " + j);
             }
 
             List<List<Cell>> square = new List<List<Cell>>();
@@ -547,7 +503,7 @@ namespace SimonSebright.Sudoku
             return new Square(square);
         }
 
-        private List<Row> m_rows;
+        private readonly List<Row> m_rows;
 
         /// <summary>
         /// Gets a new blank matrix
@@ -583,8 +539,7 @@ namespace SimonSebright.Sudoku
 
         public Matrix MakeMove(Move move, CellType cellType)
         {
-            List<Move> moves = new List<Move>();
-            moves.Add(move);
+            List<Move> moves = new List<Move> {move};
             return MakeMoves(moves, cellType);
         }
 
@@ -675,18 +630,18 @@ namespace SimonSebright.Sudoku
         {
             switch (format)
             {
-                case "Full": return string.Format("i:{0} j:{1} value: {2}", m_i.ToString(), m_j.ToString(), m_cellValue.ToString());
+                case "Full": return $"i:{m_i} j:{m_j} value: {m_cellValue.ToString()}";
                 default: return ToString();
             }
         }
 
-        public CellValue CellValue { get { return m_cellValue; } }
-        public int I { get { return m_i; } }
-        public int J { get { return m_j; } }
+        public CellValue CellValue => m_cellValue;
+        public int I => m_i;
+        public int J => m_j;
 
-        private int m_i;
-        private int m_j;
-        private CellValue m_cellValue;
+        private readonly int m_i;
+        private readonly int m_j;
+        private readonly CellValue m_cellValue;
     }
 
 }

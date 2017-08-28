@@ -19,8 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using SimonSebright.Sudoku;
 using System.ComponentModel;
 
 namespace SimonSebright.Sudoku.Analyser
@@ -31,7 +29,7 @@ namespace SimonSebright.Sudoku.Analyser
     {
         public delegate bool AnalyseDelegate( Matrix m, int i, int j, out CellValue cellValue );
 
-        public static AnalyseDelegate Analyse;
+        public static readonly AnalyseDelegate Analyse;
 
         static Analyser()
         {
@@ -82,21 +80,21 @@ namespace SimonSebright.Sudoku.Analyser
         {
             cellValue = CellValue.Blank;
 
-            foreach (AnalyseDelegate AnalyseFunc in Analyse.GetInvocationList())
+            foreach (AnalyseDelegate analyseFunc in Analyse.GetInvocationList())
             {
-                if (AnalyseFunc(m, i, j, out cellValue))
+                if (analyseFunc(m, i, j, out cellValue))
                     return true;
             }
 
             return false;
         }
 
-        static public bool CanMoveInExclusionGroups(Matrix m, int i, int j, out CellValue cellValue)
+        public static bool CanMoveInExclusionGroups(Matrix m, int i, int j, out CellValue cellValue)
         {
             cellValue = CellValue.Blank;
 
             Cell cell = m.At(i, j);
-            List<CellExclusionGroup> groups = cell.ExclusionGroups();
+            List<CellExclusionGroup> groups = cell.ExclusionGroups;
 
             foreach (CellExclusionGroup group in groups)
             {
@@ -109,7 +107,7 @@ namespace SimonSebright.Sudoku.Analyser
             return false;
         }
 
-        static public bool CanMoveCellInExclusionGroup( CellExclusionGroup group, Cell cell, out CellValue cellValue)
+        public static bool CanMoveCellInExclusionGroup( CellExclusionGroup group, Cell cell, out CellValue cellValue)
         {
             bool canMove = false;
             cellValue = CellValue.Blank;
@@ -162,7 +160,7 @@ namespace SimonSebright.Sudoku.Analyser
             return canMove;
         }
 
-        static public bool CanMoveInWiderCircles(Matrix m, int i, int j, out CellValue cellValue)
+        public static bool CanMoveInWiderCircles(Matrix m, int i, int j, out CellValue cellValue)
         {
             cellValue = CellValue.Blank;
             Cell cell = m.At( i, j );
@@ -173,7 +171,7 @@ namespace SimonSebright.Sudoku.Analyser
             }
 
 
-            List<CellExclusionGroup> groups = cell.ExclusionGroups();
+            List<CellExclusionGroup> groups = cell.ExclusionGroups;
 
             Dictionary<Cell, Dictionary<CellValue, int>> secondLevelExclusions = new Dictionary<Cell,Dictionary<CellValue,int>>();
 
@@ -195,7 +193,7 @@ namespace SimonSebright.Sudoku.Analyser
                     }
                     else
                     {
-                        List<CellExclusionGroup> secondLevelGroups = member.ExclusionGroups();
+                        List<CellExclusionGroup> secondLevelGroups = member.ExclusionGroups;
                         foreach (CellExclusionGroup secondLevelGroup in secondLevelGroups)
                         {
                             foreach (Cell secondLevelMember in secondLevelGroup.GetCells())
@@ -300,18 +298,15 @@ namespace SimonSebright.Sudoku.Analyser
         private static Consistency TryToSolve(Matrix m)
         {
             if (IsSolved(m)) return Consistency.Solvable;
-            else if (IsInconsistent(m)) return Consistency.Inconsistent;
-            else
-            {
-                List<Move> moves = GetAvailableMoves(m);
+            if (IsInconsistent(m)) return Consistency.Inconsistent;
+            List<Move> moves = GetAvailableMoves(m);
 
-                if (moves.Count != 0)
-                {
-                    Matrix m2 = m.MakeMoves(moves, CellType.Subsequent);
-                    return TryToSolve(m2);
-                }
-                else return Consistency.Indeterminate;
+            if (moves.Count != 0)
+            {
+                Matrix m2 = m.MakeMoves(moves, CellType.Subsequent);
+                return TryToSolve(m2);
             }
+            return Consistency.Indeterminate;
         }
 
         public static void GenerateNewPuzzle(object sender, DoWorkEventArgs e)
@@ -336,7 +331,7 @@ namespace SimonSebright.Sudoku.Analyser
                     foundEmptyCell = true;
             }
 
-            List<CellExclusionGroup> exclusions = m.At( i, j ).ExclusionGroups();
+            List<CellExclusionGroup> exclusions = m.At( i, j ).ExclusionGroups;
             CellValue cellValue = CellValue.Blank;
 
             foreach( CellValue test in Cell.AllCellValuesRandom() )
@@ -406,6 +401,6 @@ namespace SimonSebright.Sudoku.Analyser
         }
 
 
-        private Matrix m_m;
+        private readonly Matrix m_m;
     }
 }

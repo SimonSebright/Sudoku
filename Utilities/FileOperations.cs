@@ -19,15 +19,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
-using SimonSebright.Sudoku;
 
 namespace SimonSebright.Sudoku.Utilities
 {
     public static class FileOperations
     {
-        private static string Signature { get { return "www.simonsebright.com Sudoku file format"; }}
+        private static string Signature => "www.simonsebright.com Sudoku file format";
         private static int CurrentVersion = 1;
 
         public class MatrixFileException : ApplicationException
@@ -131,11 +129,10 @@ namespace SimonSebright.Sudoku.Utilities
             using( StreamWriter sr = new StreamWriter( fileName ) )
             {
                 sr.WriteLine(Signature);
-                sr.WriteLine("Version " + CurrentVersion.ToString());
+                sr.WriteLine("Version " + CurrentVersion);
 
                 for (int j = 0; j < Settings.GridSize; ++j)
                 {
-                    Row row = m.Row(j);
                     string rowText = string.Empty;
                     for (int i = 0; i < Settings.GridSize; ++i)
                     {

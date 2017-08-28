@@ -104,6 +104,9 @@
       <DependentUpon>WaitingDialog.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
+    <None Include="Examples\Simple1.sdk" />
+    <None Include="Examples\Simple2.sdk" />
+    <None Include="Examples\Simple3.sdk" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -150,9 +153,7 @@
   <ItemGroup>
     <None Include="Resources\Suduko.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Examples\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
       <Visible>False</Visible>

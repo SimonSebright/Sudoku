@@ -18,7 +18,6 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace SimonSebright.SudokuUI
@@ -33,9 +32,9 @@ namespace SimonSebright.SudokuUI
         {
             try
             {
-                System.Windows.Forms.Application.EnableVisualStyles();
-                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                System.Windows.Forms.Application.Run(new MainForm());
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new MainForm());
             }
             catch (Exception e)
             {

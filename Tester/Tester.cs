@@ -21,8 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
-using SimonSebright.Sudoku;
-using SimonSebright.Sudoku.Analyser;
 
 namespace SimonSebright.Sudoku.Tester
 {
