@@ -27,9 +27,8 @@ namespace SimonSebright.SudokuUI
 {
     public partial class MainForm : Form
     {
-        private bool m_dirty;
-
-        private string m_fileName;
+        private bool mDirty;
+        private string mFileName;
 
         public MainForm()
         {
@@ -38,23 +37,23 @@ namespace SimonSebright.SudokuUI
 
         private bool Dirty
         {
-            get => m_dirty;
+            get => mDirty;
             set
             {
-                m_dirty = value;
+                mDirty = value;
                 UpdateControls();
             }
         }
 
-        private void PerformUIConfirmAction(UIDelegate func)
+        private void PerformUiConfirmAction(UiDelegate func)
         {
             if (ConfirmScrap())
             {
-                PerformUIAction(func);
+                PerformUiAction(func);
             }
         }
 
-        private void PerformUIAction(UIDelegate func)
+        private void PerformUiAction(UiDelegate func)
         {
             try { func(); }
             catch (Exception e)
@@ -121,39 +120,39 @@ namespace SimonSebright.SudokuUI
 
         private void newToolStripButton_Click(object sender, EventArgs e)
         {
-            UINewFile();
+            UiNewFile();
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UINewFile();
+            UiNewFile();
         }
 
-        private void UINewFile()
+        private void UiNewFile()
         {
-            PerformUIConfirmAction(NewFile);
+            PerformUiConfirmAction(NewFile);
         }
 
         private void NewFile()
         {
             sudokuControl1.StartNewGame();
-            m_fileName = null;
+            mFileName = null;
             Dirty = false;
         }
 
         private void openToolStripButton_Click(object sender, EventArgs e)
         {
-            UIOpenFile();
+            UiOpenFile();
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIOpenFile();
+            UiOpenFile();
         }
 
-        private void UIOpenFile()
+        private void UiOpenFile()
         {
-            PerformUIConfirmAction(OpenFile);
+            PerformUiConfirmAction(OpenFile);
         }
 
         private void SetFileDialogFilter(FileDialog dlg)
@@ -164,8 +163,7 @@ namespace SimonSebright.SudokuUI
 
         private void OpenFile()
         {
-            var ofd = new OpenFileDialog();
-            ofd.Title = "Open existing puzzle";
+            var ofd = new OpenFileDialog {Title = "Open existing puzzle"};
             SetFileDialogFilter(ofd);
             if (ofd.ShowDialog() == DialogResult.OK)
             {
@@ -177,45 +175,45 @@ namespace SimonSebright.SudokuUI
         {
             var m = FileOperations.MatrixFromFile(file);
             sudokuControl1.StartGame(m);
-            m_fileName = file;
+            mFileName = file;
             Dirty = false;
         }
 
         private void saveToolStripButton_Click(object sender, EventArgs e)
         {
-            UISaveFile();
+            UiSaveFile();
         }
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UISaveFile();
+            UiSaveFile();
         }
 
         private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UISaveFileAs();
+            UiSaveFileAs();
         }
 
-        private void UISaveFile()
+        private void UiSaveFile()
         {
-            PerformUIAction(SaveFile);
+            PerformUiAction(SaveFile);
         }
 
-        private void UISaveFileAs()
+        private void UiSaveFileAs()
         {
-            PerformUIAction(SaveFileAs);
+            PerformUiAction(SaveFileAs);
         }
 
         private void SaveFile()
         {
-            if (m_fileName == null)
+            if (mFileName == null)
             {
                 if (SaveFileAsWithSuccess())
                 {
                     Dirty = false;
                 }
             }
-            else if (SaveFile(m_fileName))
+            else if (SaveFile(mFileName))
             {
                 Dirty = false;
             }
@@ -237,7 +235,7 @@ namespace SimonSebright.SudokuUI
             {
                 SaveFile(sfd.FileName);
                 // This after in case of exceptions
-                m_fileName = sfd.FileName;
+                mFileName = sfd.FileName;
                 Dirty = false;
             }
 
@@ -252,28 +250,28 @@ namespace SimonSebright.SudokuUI
 
         private void ShowMovesButton_Click(object sender, EventArgs e)
         {
-            UpdateUI(ToggleMoves);
+            UpdateUi(ToggleMoves);
         }
 
         private void makeMovesButton_Click(object sender, EventArgs e)
         {
-            UpdateUIDirty(MakeMoves);
+            UpdateUiDirty(MakeMoves);
         }
 
         private void makeOneMoveButton_Click(object sender, EventArgs e)
         {
-            UpdateUIDirty(MakeOneMove);
+            UpdateUiDirty(MakeOneMove);
         }
 
-        private void UpdateUI(UIDelegate func)
+        private void UpdateUi(UiDelegate func)
         {
-            PerformUIAction(func);
+            PerformUiAction(func);
             UpdateControls();
         }
 
-        private void UpdateUIDirty(UIDelegate func)
+        private void UpdateUiDirty(UiDelegate func)
         {
-            PerformUIAction(func);
+            PerformUiAction(func);
             Dirty = true;
             UpdateControls();
         }
@@ -299,7 +297,7 @@ namespace SimonSebright.SudokuUI
 
             var text = string.Format(AppRes.TitleFormat,
                 AppRes.AppTitle,
-                m_fileName ?? AppRes.UntitledName,
+                mFileName ?? AppRes.UntitledName,
                 Dirty ? AppRes.ChangedIndicator : string.Empty);
             Text = text;
         }
@@ -384,137 +382,137 @@ namespace SimonSebright.SudokuUI
 
         private void ToggleMode()
         {
-            PerformUIAction(sudokuControl1.ToggleMode);
+            PerformUiAction(sudokuControl1.ToggleMode);
         }
 
         private void printToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIPrint();
+            UiPrint();
         }
 
         private void printToolStripButton_Click(object sender, EventArgs e)
         {
-            UIPrint();
+            UiPrint();
         }
 
-        private void UIPrint()
+        private void UiPrint()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void cutToolStripButton_Click(object sender, EventArgs e)
         {
-            UICut();
+            UiCut();
         }
 
         private void cutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UICut();
+            UiCut();
         }
 
-        private void UICut()
+        private void UiCut()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void copyToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UICopy();
+            UiCopy();
         }
 
         private void copyToolStripButton_Click(object sender, EventArgs e)
         {
-            UICopy();
+            UiCopy();
         }
 
-        private void UICopy()
+        private void UiCopy()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void pasteToolStripButton_Click(object sender, EventArgs e)
         {
-            UIPaste();
+            UiPaste();
         }
 
         private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIPaste();
+            UiPaste();
         }
 
-        private void UIPaste()
+        private void UiPaste()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UISelectAll();
+            UiSelectAll();
         }
 
-        private void UISelectAll()
+        private void UiSelectAll()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void customizeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UICustomize();
+            UiCustomize();
         }
 
-        private void UICustomize()
+        private void UiCustomize()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void optionsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIOptions();
+            UiOptions();
         }
 
-        private void UIOptions()
+        private void UiOptions()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void contentsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIHelpContents();
+            UiHelpContents();
         }
 
-        private void UIHelpContents()
+        private void UiHelpContents()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void indexToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIHelpIndex();
+            UiHelpIndex();
         }
 
-        private void UIHelpIndex()
+        private void UiHelpIndex()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void searchToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIHelpSearch();
+            UiHelpSearch();
         }
 
-        private void UIHelpSearch()
+        private void UiHelpSearch()
         {
-            PerformUIAction(NotImplemented);
+            PerformUiAction(NotImplemented);
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIHelpAbout();
+            UiHelpAbout();
         }
 
-        private void UIHelpAbout()
+        private void UiHelpAbout()
         {
-            PerformUIAction(() =>
+            PerformUiAction(() =>
             {
                 var ab = new AboutBox();
                 ab.ShowDialog();
@@ -523,42 +521,42 @@ namespace SimonSebright.SudokuUI
 
         private void undoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIUndo();
+            UiUndo();
         }
 
         private void redoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UIRedo();
+            UiRedo();
         }
 
-        private void UIUndo()
+        private void UiUndo()
         {
-            PerformUIAction(delegate() { sudokuControl1.Undo(); });
+            PerformUiAction(() => sudokuControl1.Undo());
         }
 
-        private void UIRedo()
+        private void UiRedo()
         {
-            PerformUIAction(delegate() { sudokuControl1.Redo(); });
+            PerformUiAction(() => sudokuControl1.Redo());
         }
 
         private void StripButtonUndo_Click(object sender, EventArgs e)
         {
-            UIUndo();
+            UiUndo();
         }
 
         private void StripButtonRedo_Click(object sender, EventArgs e)
         {
-            UIRedo();
+            UiRedo();
         }
 
         private void StripButtonNewPuzzle_Click(object sender, EventArgs e)
         {
-            UINewPuzzle();
+            UiNewPuzzle();
         }
 
-        private void UINewPuzzle()
+        private void UiNewPuzzle()
         {
-            PerformUIConfirmAction(delegate()
+            PerformUiConfirmAction(() =>
                 {
                     var m = WaitingDialog.GenerateNewPuzzle();
                     if (m == null)
@@ -567,7 +565,7 @@ namespace SimonSebright.SudokuUI
                     }
                     sudokuControl1.StartGame(m);
                     // Treat as a new file
-                    m_fileName = null;
+                    mFileName = null;
                     Dirty = true;
                 }
             );
@@ -575,12 +573,12 @@ namespace SimonSebright.SudokuUI
 
         private void StripButtonReset_Click(object sender, EventArgs e)
         {
-            UIReset();
+            UiReset();
         }
 
-        private void UIReset()
+        private void UiReset()
         {
-            PerformUIConfirmAction(delegate()
+            PerformUiConfirmAction(() =>
                 {
                     if (!sudokuControl1.Matrix.HasSubsequentCells)
                     {
@@ -595,13 +593,6 @@ namespace SimonSebright.SudokuUI
             );
         }
 
-        private delegate void UIDelegate();
-    }
-
-    internal class SudokuException : ApplicationException
-    {
-        public SudokuException(string message) : base(message)
-        {
-        }
+        private delegate void UiDelegate();
     }
 }

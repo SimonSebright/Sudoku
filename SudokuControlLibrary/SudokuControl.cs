@@ -843,13 +843,6 @@ namespace SimonSebright.SudokuControlLibrary
         private delegate void UIFuncMode(Mode mode);
     }
 
-    public class SudokoControlException : ApplicationException
-    {
-        public SudokoControlException(string message) : base(message)
-        {
-        }
-    }
-
     internal class SudokuControlDesigner : ControlDesigner
     {
     }

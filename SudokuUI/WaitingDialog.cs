@@ -28,9 +28,8 @@ namespace SimonSebright.SudokuUI
 {
     public partial class WaitingDialog : Form
     {
-        private readonly BackgroundWorker m_bw = new BackgroundWorker();
-
-        private Matrix m_m;
+        private readonly BackgroundWorker mBw = new BackgroundWorker();
+        private Matrix mM;
 
         public WaitingDialog()
         {
@@ -45,7 +44,7 @@ namespace SimonSebright.SudokuUI
         private void Cancel_Click(object sender, EventArgs e)
         {
             Debug.Assert(!InvokeRequired);
-            m_bw.CancelAsync();
+            mBw.CancelAsync();
         }
 
         public static Matrix GenerateNewPuzzle()
@@ -57,18 +56,18 @@ namespace SimonSebright.SudokuUI
         private void OnGeneratePuzzleComplete(object sender, RunWorkerCompletedEventArgs e)
         {
             Debug.Assert(!InvokeRequired);
-            m_m = (Matrix) e.Result;
+            mM = (Matrix) e.Result;
             Close();
         }
 
         private Matrix Go()
         {
-            m_bw.DoWork += Analyser.GenerateNewPuzzle;
-            m_bw.RunWorkerCompleted += OnGeneratePuzzleComplete;
-            m_bw.RunWorkerAsync();
-            m_bw.WorkerSupportsCancellation = true;
+            mBw.DoWork += Analyser.GenerateNewPuzzle;
+            mBw.RunWorkerCompleted += OnGeneratePuzzleComplete;
+            mBw.RunWorkerAsync();
+            mBw.WorkerSupportsCancellation = true;
             ShowDialog();
-            return m_m;
+            return mM;
         }
 
         private void WaitingDialog_FormClosing(object sender, FormClosingEventArgs e)

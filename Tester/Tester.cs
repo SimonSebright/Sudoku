@@ -170,7 +170,7 @@ namespace SimonSebright.Sudoku.Tester
             var moveString = new StringBuilder();
             foreach (var move in moves)
             {
-                moveString.Append(move.ToString());
+                moveString.Append(move);
             }
 
             Assert.AreEqual(1, moves.Count);

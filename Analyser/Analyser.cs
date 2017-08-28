@@ -23,22 +23,13 @@ using System.ComponentModel;
 
 namespace SimonSebright.Sudoku.Analyser
 {
-    public enum Consistency
-    {
-        Inconsistent,
-        Solvable,
-        Solved,
-        Indeterminate,
-        Calculating
-    };
-
     public class Analyser
     {
         public delegate bool AnalyseDelegate(Matrix m, int i, int j, out CellValue cellValue);
 
         public static readonly AnalyseDelegate Analyse;
 
-        private readonly Matrix m_m;
+        private readonly Matrix mM;
 
         static Analyser()
         {
@@ -52,7 +43,7 @@ namespace SimonSebright.Sudoku.Analyser
 
         public Analyser(Matrix m)
         {
-            m_m = m;
+            mM = m;
         }
 
         public static bool CanMove(Matrix m)
@@ -62,7 +53,7 @@ namespace SimonSebright.Sudoku.Analyser
 
         public void GetAvailableMoves(object sender, DoWorkEventArgs e)
         {
-            e.Result = GetAvailableMoves(m_m);
+            e.Result = GetAvailableMoves(mM);
         }
 
         public static List<Move> GetAvailableMoves(Matrix m)
@@ -265,7 +256,7 @@ namespace SimonSebright.Sudoku.Analyser
 
         public void CalculateConsistency(object sender, DoWorkEventArgs e)
         {
-            e.Result = IsSolved(m_m) ? Consistency.Solved : TryToSolve(m_m);
+            e.Result = IsSolved(mM) ? Consistency.Solved : TryToSolve(mM);
         }
 
         private static bool IsInconsistent(Matrix m)
@@ -336,7 +327,7 @@ namespace SimonSebright.Sudoku.Analyser
 
         public static void GenerateNewPuzzle(object sender, DoWorkEventArgs e)
         {
-            e.Result = GenerateNewPuzzle(sender as BackgroundWorker, e);
+            e.Result = GenerateNewPuzzle(sender as BackgroundWorker);
         }
 
         private static Matrix MakeRandomValidMove(Matrix m)
@@ -391,7 +382,7 @@ namespace SimonSebright.Sudoku.Analyser
             return m.MakeMove(move, CellType.Original);
         }
 
-        public static Matrix GenerateNewPuzzle(BackgroundWorker bw, DoWorkEventArgs e)
+        private static Matrix GenerateNewPuzzle(BackgroundWorker bw)
         {
             var attempts = new Stack<Matrix>();
             attempts.Push(Matrix.Blank);
