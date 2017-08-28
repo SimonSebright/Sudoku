@@ -1,0 +1,11 @@
+www.simonsebright.com Sudoku file format
+Version 1
+1O,,4O,5O,,,2O,,8O
+,,,,8O,,5O
+3O,5O,,6O,,1O,,,9O
+,,1O,,,,4O,,2O
+,2O,,,5O,,,3O
+8O,,6O,,,,9O
+7O,,,2O,,8O,,5O,4O
+,,2O,,4O
+4O,,5O,,,9O,8O,,7O

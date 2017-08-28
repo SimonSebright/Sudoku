@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku", "Sudoku\Sudoku.csproj", "{CCC08813-4143-4E48-9F4A-8C294FFAC59F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{CA7313E1-6086-45C0-BD89-E54643B8885F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Analyser", "Analyser\Analyser.csproj", "{EB21920B-0532-4047-BAA6-7C0286BE068B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SudokuUI", "SudokuUI\SudokuUI.csproj", "{85ACD950-FC25-4D0E-862E-5A633F239176}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SudokuControlLibrary", "SudokuControlLibrary\SudokuControlLibrary.csproj", "{053314E5-9E20-4083-9385-C343446AE323}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities\Utilities.csproj", "{6A52ACD3-6E12-45F3-B16B-98A6F57CD4F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interfaces", "Interfaces\Interfaces.csproj", "{2CEA9DF5-D524-40A0-B9E9-CBFE94F8BA7B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CCC08813-4143-4E48-9F4A-8C294FFAC59F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCC08813-4143-4E48-9F4A-8C294FFAC59F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCC08813-4143-4E48-9F4A-8C294FFAC59F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCC08813-4143-4E48-9F4A-8C294FFAC59F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA7313E1-6086-45C0-BD89-E54643B8885F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA7313E1-6086-45C0-BD89-E54643B8885F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA7313E1-6086-45C0-BD89-E54643B8885F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA7313E1-6086-45C0-BD89-E54643B8885F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB21920B-0532-4047-BAA6-7C0286BE068B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB21920B-0532-4047-BAA6-7C0286BE068B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB21920B-0532-4047-BAA6-7C0286BE068B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB21920B-0532-4047-BAA6-7C0286BE068B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85ACD950-FC25-4D0E-862E-5A633F239176}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85ACD950-FC25-4D0E-862E-5A633F239176}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85ACD950-FC25-4D0E-862E-5A633F239176}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85ACD950-FC25-4D0E-862E-5A633F239176}.Release|Any CPU.Build.0 = Release|Any CPU
+		{053314E5-9E20-4083-9385-C343446AE323}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{053314E5-9E20-4083-9385-C343446AE323}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{053314E5-9E20-4083-9385-C343446AE323}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{053314E5-9E20-4083-9385-C343446AE323}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A52ACD3-6E12-45F3-B16B-98A6F57CD4F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A52ACD3-6E12-45F3-B16B-98A6F57CD4F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A52ACD3-6E12-45F3-B16B-98A6F57CD4F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A52ACD3-6E12-45F3-B16B-98A6F57CD4F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CEA9DF5-D524-40A0-B9E9-CBFE94F8BA7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CEA9DF5-D524-40A0-B9E9-CBFE94F8BA7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CEA9DF5-D524-40A0-B9E9-CBFE94F8BA7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CEA9DF5-D524-40A0-B9E9-CBFE94F8BA7B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
