@@ -23,13 +23,22 @@ using System.ComponentModel;
 
 namespace SimonSebright.Sudoku.Analyser
 {
-    public enum Consistency { Inconsistent, Solvable, Solved, Indeterminate, Calculating };
+    public enum Consistency
+    {
+        Inconsistent,
+        Solvable,
+        Solved,
+        Indeterminate,
+        Calculating
+    };
 
     public class Analyser
     {
-        public delegate bool AnalyseDelegate( Matrix m, int i, int j, out CellValue cellValue );
+        public delegate bool AnalyseDelegate(Matrix m, int i, int j, out CellValue cellValue);
 
         public static readonly AnalyseDelegate Analyse;
+
+        private readonly Matrix m_m;
 
         static Analyser()
         {
@@ -46,9 +55,9 @@ namespace SimonSebright.Sudoku.Analyser
             m_m = m;
         }
 
-        public static bool CanMove( Matrix m )
+        public static bool CanMove(Matrix m)
         {
-            return GetAvailableMoves( m ).Count > 0;
+            return GetAvailableMoves(m).Count > 0;
         }
 
         public void GetAvailableMoves(object sender, DoWorkEventArgs e)
@@ -56,19 +65,18 @@ namespace SimonSebright.Sudoku.Analyser
             e.Result = GetAvailableMoves(m_m);
         }
 
-           
         public static List<Move> GetAvailableMoves(Matrix m)
         {
-            List<Move> moves = new List<Move>();
+            var moves = new List<Move>();
 
-            for (int i = 0; i < Settings.GridSize; ++i)
+            for (var i = 0; i < Settings.GridSize; ++i)
             {
-                for (int j = 0; j < Settings.GridSize; ++j)
+                for (var j = 0; j < Settings.GridSize; ++j)
                 {
                     CellValue cellValue;
                     if (CanMove(m, i, j, out cellValue))
                     {
-                        moves.Add( new Move( i, j, cellValue ));
+                        moves.Add(new Move(i, j, cellValue));
                     }
                 }
             }
@@ -83,7 +91,9 @@ namespace SimonSebright.Sudoku.Analyser
             foreach (AnalyseDelegate analyseFunc in Analyse.GetInvocationList())
             {
                 if (analyseFunc(m, i, j, out cellValue))
+                {
                     return true;
+                }
             }
 
             return false;
@@ -93,12 +103,12 @@ namespace SimonSebright.Sudoku.Analyser
         {
             cellValue = CellValue.Blank;
 
-            Cell cell = m.At(i, j);
-            List<CellExclusionGroup> groups = cell.ExclusionGroups;
+            var cell = m.At(i, j);
+            var groups = cell.ExclusionGroups;
 
-            foreach (CellExclusionGroup group in groups)
+            foreach (var group in groups)
             {
-                if (CanMoveCellInExclusionGroup(group,cell, out cellValue))
+                if (CanMoveCellInExclusionGroup(group, cell, out cellValue))
                 {
                     return true;
                 }
@@ -107,9 +117,9 @@ namespace SimonSebright.Sudoku.Analyser
             return false;
         }
 
-        public static bool CanMoveCellInExclusionGroup( CellExclusionGroup group, Cell cell, out CellValue cellValue)
+        public static bool CanMoveCellInExclusionGroup(CellExclusionGroup group, Cell cell, out CellValue cellValue)
         {
-            bool canMove = false;
+            var canMove = false;
             cellValue = CellValue.Blank;
 
             if (!group.Contains(cell))
@@ -122,13 +132,13 @@ namespace SimonSebright.Sudoku.Analyser
                 return false;
             }
 
-            Dictionary<CellValue, int> uniques = new Dictionary<CellValue, int>();
+            var uniques = new Dictionary<CellValue, int>();
 
-            foreach (Cell member in group.GetCells())
+            foreach (var member in group.GetCells())
             {
                 if (member.CellValue != CellValue.Blank)
                 {
-                    if (!uniques.ContainsKey( member.CellValue ))
+                    if (!uniques.ContainsKey(member.CellValue))
                     {
                         uniques.Add(member.CellValue, 1);
                     }
@@ -147,11 +157,11 @@ namespace SimonSebright.Sudoku.Analyser
                     canMove = true;
 
                     // But which is it?
-                    for (int enumValue = (int)CellValue.One; enumValue <= (int)CellValue.Nine; ++enumValue )
+                    for (var enumValue = (int) CellValue.One; enumValue <= (int) CellValue.Nine; ++enumValue)
                     {
-                        if (!uniques.ContainsKey((CellValue)enumValue))
+                        if (!uniques.ContainsKey((CellValue) enumValue))
                         {
-                            cellValue = (CellValue)enumValue;
+                            cellValue = (CellValue) enumValue;
                         }
                     }
                 }
@@ -163,7 +173,7 @@ namespace SimonSebright.Sudoku.Analyser
         public static bool CanMoveInWiderCircles(Matrix m, int i, int j, out CellValue cellValue)
         {
             cellValue = CellValue.Blank;
-            Cell cell = m.At( i, j );
+            var cell = m.At(i, j);
 
             if (cell.CellValue != CellValue.Blank)
             {
@@ -171,19 +181,19 @@ namespace SimonSebright.Sudoku.Analyser
             }
 
 
-            List<CellExclusionGroup> groups = cell.ExclusionGroups;
+            var groups = cell.ExclusionGroups;
 
-            Dictionary<Cell, Dictionary<CellValue, int>> secondLevelExclusions = new Dictionary<Cell,Dictionary<CellValue,int>>();
+            var secondLevelExclusions = new Dictionary<Cell, Dictionary<CellValue, int>>();
 
             // For every exclusion group, the non-blank cells will have values they cannot be.  These come from their exclusion groups.
             // Thus, we hope to find at least one cell whose value cannot be (everything but one value) and that is the value we must be
-            foreach (CellExclusionGroup group in groups)
+            foreach (var group in groups)
             {
-                foreach (Cell member in group.GetCells())
+                foreach (var member in group.GetCells())
                 {
                     if (!secondLevelExclusions.ContainsKey(member))
                     {
-                        secondLevelExclusions.Add( member, new Dictionary<CellValue, int>());
+                        secondLevelExclusions.Add(member, new Dictionary<CellValue, int>());
                     }
 
                     // If we have a value already, then everything else is automatically an exclusion
@@ -193,12 +203,12 @@ namespace SimonSebright.Sudoku.Analyser
                     }
                     else
                     {
-                        List<CellExclusionGroup> secondLevelGroups = member.ExclusionGroups;
-                        foreach (CellExclusionGroup secondLevelGroup in secondLevelGroups)
+                        var secondLevelGroups = member.ExclusionGroups;
+                        foreach (var secondLevelGroup in secondLevelGroups)
                         {
-                            foreach (Cell secondLevelMember in secondLevelGroup.GetCells())
+                            foreach (var secondLevelMember in secondLevelGroup.GetCells())
                             {
-                                CellValue secondLevelValue = secondLevelMember.CellValue;
+                                var secondLevelValue = secondLevelMember.CellValue;
 
                                 if (secondLevelValue != CellValue.Blank)
                                 {
@@ -212,19 +222,19 @@ namespace SimonSebright.Sudoku.Analyser
 
             // Now, we have all the values which the other cells in each group cannot be.  We hope to find that in one group, all cells
             // have the same non-permitted value
-            foreach (CellExclusionGroup group in groups)
+            foreach (var group in groups)
             {
-                for (int enumValue = (int)CellValue.One; enumValue <= (int)CellValue.Nine; ++enumValue)
+                for (var enumValue = (int) CellValue.One; enumValue <= (int) CellValue.Nine; ++enumValue)
                 {
-                    bool allOthersHaveExclusion = true;
+                    var allOthersHaveExclusion = true;
 
-                    foreach (Cell member in group.GetCells())
+                    foreach (var member in group.GetCells())
                     {
                         if (member != cell) // we are the one we are looking for!
                         {
-                            Dictionary<CellValue, int> exclusionsThisMember = secondLevelExclusions[member];
+                            var exclusionsThisMember = secondLevelExclusions[member];
 
-                            if (!exclusionsThisMember.ContainsKey((CellValue)enumValue))
+                            if (!exclusionsThisMember.ContainsKey((CellValue) enumValue))
                             {
                                 allOthersHaveExclusion = false;
                             }
@@ -233,7 +243,7 @@ namespace SimonSebright.Sudoku.Analyser
 
                     if (allOthersHaveExclusion)
                     {
-                        cellValue = (CellValue)enumValue;
+                        cellValue = (CellValue) enumValue;
                         return true;
                     }
                 }
@@ -242,32 +252,35 @@ namespace SimonSebright.Sudoku.Analyser
             return false;
         }
 
-        private static void AddOtherExclusions( CellValue cellValue, Dictionary<CellValue, int> dict)
+        private static void AddOtherExclusions(CellValue cellValue, Dictionary<CellValue, int> dict)
         {
-            for (int enumValue = (int)CellValue.One; enumValue <= (int)CellValue.Nine; ++enumValue )
+            for (var enumValue = (int) CellValue.One; enumValue <= (int) CellValue.Nine; ++enumValue)
             {
-                if ( (CellValue)enumValue != cellValue )
+                if ((CellValue) enumValue != cellValue)
                 {
-                    dict[(CellValue)enumValue] = 0;
+                    dict[(CellValue) enumValue] = 0;
                 }
             }
         }
 
-        public void CalculateConsistency( object sender, DoWorkEventArgs e)
+        public void CalculateConsistency(object sender, DoWorkEventArgs e)
         {
-            e.Result = IsSolved(m_m) ? Consistency.Solved : TryToSolve( m_m );
+            e.Result = IsSolved(m_m) ? Consistency.Solved : TryToSolve(m_m);
         }
 
         private static bool IsInconsistent(Matrix m)
         {
-            foreach (CellExclusionGroup group in m.GetExclusionGroups())
+            foreach (var group in m.GetExclusionGroups())
             {
-                Dictionary<CellValue, int> dict = new Dictionary<CellValue, int>();
-                foreach (Cell cell in group.GetCells())
+                var dict = new Dictionary<CellValue, int>();
+                foreach (var cell in group.GetCells())
                 {
                     if (cell.CellValue != CellValue.Blank)
                     {
-                        if (dict.ContainsKey(cell.CellValue)) return true;
+                        if (dict.ContainsKey(cell.CellValue))
+                        {
+                            return true;
+                        }
 
                         dict.Add(cell.CellValue, 0);
                     }
@@ -279,14 +292,20 @@ namespace SimonSebright.Sudoku.Analyser
 
         private static bool IsSolved(Matrix m)
         {
-            foreach (CellExclusionGroup group in m.GetExclusionGroups())
+            foreach (var group in m.GetExclusionGroups())
             {
-                Dictionary<CellValue, int> dict = new Dictionary<CellValue, int>();
-                foreach (Cell cell in group.GetCells())
+                var dict = new Dictionary<CellValue, int>();
+                foreach (var cell in group.GetCells())
                 {
-                    if (cell.CellValue == CellValue.Blank) return false;
+                    if (cell.CellValue == CellValue.Blank)
+                    {
+                        return false;
+                    }
 
-                    if (dict.ContainsKey(cell.CellValue)) return false;
+                    if (dict.ContainsKey(cell.CellValue))
+                    {
+                        return false;
+                    }
 
                     dict.Add(cell.CellValue, 0);
                 }
@@ -297,13 +316,19 @@ namespace SimonSebright.Sudoku.Analyser
 
         private static Consistency TryToSolve(Matrix m)
         {
-            if (IsSolved(m)) return Consistency.Solvable;
-            if (IsInconsistent(m)) return Consistency.Inconsistent;
-            List<Move> moves = GetAvailableMoves(m);
+            if (IsSolved(m))
+            {
+                return Consistency.Solvable;
+            }
+            if (IsInconsistent(m))
+            {
+                return Consistency.Inconsistent;
+            }
+            var moves = GetAvailableMoves(m);
 
             if (moves.Count != 0)
             {
-                Matrix m2 = m.MakeMoves(moves, CellType.Subsequent);
+                var m2 = m.MakeMoves(moves, CellType.Subsequent);
                 return TryToSolve(m2);
             }
             return Consistency.Indeterminate;
@@ -316,31 +341,33 @@ namespace SimonSebright.Sudoku.Analyser
 
         private static Matrix MakeRandomValidMove(Matrix m)
         {
-            Random rand = new Random(DateTime.Now.Millisecond);
+            var rand = new Random(DateTime.Now.Millisecond);
 
-            bool foundEmptyCell = false;
-            int i = 0;
-            int j = 0;
+            var foundEmptyCell = false;
+            var i = 0;
+            var j = 0;
 
             while (!foundEmptyCell)
             {
-                i = rand.Next( Settings.GridSize );
-                j = rand.Next( Settings.GridSize );
+                i = rand.Next(Settings.GridSize);
+                j = rand.Next(Settings.GridSize);
 
                 if (m.At(i, j).CellValue == CellValue.Blank)
+                {
                     foundEmptyCell = true;
+                }
             }
 
-            List<CellExclusionGroup> exclusions = m.At( i, j ).ExclusionGroups;
-            CellValue cellValue = CellValue.Blank;
+            var exclusions = m.At(i, j).ExclusionGroups;
+            var cellValue = CellValue.Blank;
 
-            foreach( CellValue test in Cell.AllCellValuesRandom() )
+            foreach (var test in Cell.AllCellValuesRandom())
             {
-                bool containsValue = false;
+                var containsValue = false;
 
-                foreach( CellExclusionGroup group in exclusions )
+                foreach (var group in exclusions)
                 {
-                    if ( group.ContainsValue( test ) )
+                    if (group.ContainsValue(test))
                     {
                         containsValue = true;
                         break;
@@ -354,36 +381,39 @@ namespace SimonSebright.Sudoku.Analyser
                 }
             }
 
-            if ( cellValue == CellValue.Blank )
+            if (cellValue == CellValue.Blank)
             {
-                throw new ApplicationException( "Failed to get a valid move" );
+                throw new ApplicationException("Failed to get a valid move");
             }
 
-            Move move = new Move( i, j, cellValue );
+            var move = new Move(i, j, cellValue);
 
-            return m.MakeMove( move, CellType.Original );
+            return m.MakeMove(move, CellType.Original);
         }
 
         public static Matrix GenerateNewPuzzle(BackgroundWorker bw, DoWorkEventArgs e)
         {
-            Stack<Matrix> attempts = new Stack<Matrix>();
-            attempts.Push( Matrix.Blank );
+            var attempts = new Stack<Matrix>();
+            attempts.Push(Matrix.Blank);
 
             // Now, we have to do random moves until we find a situation which is solvable
-            bool finished = false;
-            while ( !finished )
+            var finished = false;
+            while (!finished)
             {
-                Matrix m1 = MakeRandomValidMove(attempts.Peek());
+                var m1 = MakeRandomValidMove(attempts.Peek());
 
-                Consistency consistency = TryToSolve(m1);
+                var consistency = TryToSolve(m1);
 
                 switch (consistency)
                 {
                     case Consistency.Indeterminate:
-                        attempts.Push( m1 ); break;
+                        attempts.Push(m1);
+                        break;
                     case Consistency.Solvable:
                     case Consistency.Solved:
-                        attempts.Push(m1); finished = true; break;
+                        attempts.Push(m1);
+                        finished = true;
+                        break;
                     case Consistency.Inconsistent:
                         // A valid move leading to inconsistency means we get really stuck
                         // scrap this one and the attempt
@@ -399,8 +429,5 @@ namespace SimonSebright.Sudoku.Analyser
 
             return attempts.Pop();
         }
-
-
-        private readonly Matrix m_m;
     }
 }

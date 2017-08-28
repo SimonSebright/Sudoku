@@ -22,13 +22,13 @@ using System.Windows.Forms;
 
 namespace SimonSebright.SudokuUI
 {
-    static class Program
+    internal static class Program
     {
         /// <summary>
-        /// The main entry point for the application.
+        ///     The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             try
             {
@@ -38,9 +38,9 @@ namespace SimonSebright.SudokuUI
             }
             catch (Exception e)
             {
-                MessageBox.Show( string.Format( AppRes.BigError, e.Message ),
-                                 AppRes.AppTitle
-                             );
+                MessageBox.Show(string.Format(AppRes.BigError, e.Message),
+                    AppRes.AppTitle
+                );
             }
         }
     }

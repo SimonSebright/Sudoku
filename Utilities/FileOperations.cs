@@ -25,46 +25,50 @@ namespace SimonSebright.Sudoku.Utilities
 {
     public static class FileOperations
     {
-        private static string Signature => "www.simonsebright.com Sudoku file format";
         private static int CurrentVersion = 1;
+        private static string Signature => "www.simonsebright.com Sudoku file format";
 
-        public class MatrixFileException : ApplicationException
+        public static Matrix MatrixFromFile(string file)
         {
-            public MatrixFileException( string message ) : base( message ) {}
-        }
-
-        public static Matrix MatrixFromFile( string file )
-        {
-            if ( !File.Exists( file ) ) throw new MatrixFileException( "File does not exist: " + file );
-
-            using ( StreamReader sr = new StreamReader( file ))
+            if (!File.Exists(file))
             {
-                return MatrixFromTextReader( sr );
+                throw new MatrixFileException("File does not exist: " + file);
+            }
+
+            using (var sr = new StreamReader(file))
+            {
+                return MatrixFromTextReader(sr);
             }
         }
 
         public static Matrix MatrixFromTextReader(TextReader tr)
         {
-            string signature = tr.ReadLine();
-            if ( signature != Signature )  throw new MatrixFileException( "This file is not a sudoku puzzle file" );
-
-            string version = tr.ReadLine();
-
-            string prefix = "Version ";
-            if (version.IndexOf(prefix) == -1) throw new MatrixFileException("Version entry not found");
-            switch ( version.Substring( prefix.Length ))
+            var signature = tr.ReadLine();
+            if (signature != Signature)
             {
-                case "1": return MatrixFromTextReader1( tr );
-                default: throw new MatrixFileException( "Unrecognised version number" );
+                throw new MatrixFileException("This file is not a sudoku puzzle file");
+            }
+
+            var version = tr.ReadLine();
+
+            var prefix = "Version ";
+            if (version.IndexOf(prefix) == -1)
+            {
+                throw new MatrixFileException("Version entry not found");
+            }
+            switch (version.Substring(prefix.Length))
+            {
+                case "1": return MatrixFromTextReader1(tr);
+                default: throw new MatrixFileException("Unrecognised version number");
             }
         }
 
-        private static Matrix MatrixFromTextReader1( TextReader tr )
+        private static Matrix MatrixFromTextReader1(TextReader tr)
         {
-            List<List<Cell>> rows = new List<List<Cell>>();
-            for (int j = 0; j < Settings.GridSize; ++j)
+            var rows = new List<List<Cell>>();
+            for (var j = 0; j < Settings.GridSize; ++j)
             {
-                string rowText = tr.ReadLine();
+                var rowText = tr.ReadLine();
 
                 if (rowText == null)
                 {
@@ -72,14 +76,14 @@ namespace SimonSebright.Sudoku.Utilities
                 }
                 else
                 {
-                    string[] rowCellText = rowText.Split(',');
+                    var rowCellText = rowText.Split(',');
 
-                    List<Cell> row = new List<Cell>();
+                    var row = new List<Cell>();
 
-                    for (int i = 0; i < Settings.GridSize; ++i)
+                    for (var i = 0; i < Settings.GridSize; ++i)
                     {
-                        string cellText = i < rowCellText.Length ? rowCellText[i] : string.Empty;
-                        row.Add( GetCell( cellText ));
+                        var cellText = i < rowCellText.Length ? rowCellText[i] : string.Empty;
+                        row.Add(GetCell(cellText));
                     }
 
                     rows.Add(row);
@@ -91,60 +95,74 @@ namespace SimonSebright.Sudoku.Utilities
 
         private static Cell GetCell(string cellText)
         {
-            CellType cellType = CellType.Subsequent;
-            CellValue cellValue = CellValue.Blank;
+            var cellType = CellType.Subsequent;
+            var cellValue = CellValue.Blank;
 
             try
             {
                 cellText = cellText.Trim();
                 if (cellText != string.Empty)
                 {
-                    string number = cellText.Substring(0, 1);
+                    var number = cellText.Substring(0, 1);
 
 
-                    int i = 0;
-                    
+                    var i = 0;
+
                     // We'll forgive them - it's a blank
                     try { i = int.Parse(number); }
-                    catch { }
+                    catch {
+                        // ignored
+                    }
 
                     if (i != 0)
                     {
-                        cellValue = (CellValue)i;
+                        cellValue = (CellValue) i;
                         cellType = cellText.Length > 1 ? CellType.Original : CellType.Subsequent;
                     }
                 }
 
-                return new Cell( cellValue, cellType );
+                return new Cell(cellValue, cellType);
             }
             catch (Exception)
             {
                 throw new MatrixException("Could not convert text to cell value: " + cellText);
             }
-
         }
 
         public static void MatrixToFile(Matrix m, string fileName)
         {
-            using( StreamWriter sr = new StreamWriter( fileName ) )
+            using (var sr = new StreamWriter(fileName))
             {
                 sr.WriteLine(Signature);
                 sr.WriteLine("Version " + CurrentVersion);
 
-                for (int j = 0; j < Settings.GridSize; ++j)
+                for (var j = 0; j < Settings.GridSize; ++j)
                 {
-                    string rowText = string.Empty;
-                    for (int i = 0; i < Settings.GridSize; ++i)
+                    var rowText = string.Empty;
+                    for (var i = 0; i < Settings.GridSize; ++i)
                     {
-                        if (i > 0) rowText += ',';
-                        Cell cell = m.At( i, j );
-                        rowText += Cell.CellValueToString( cell.CellValue );
+                        if (i > 0)
+                        {
+                            rowText += ',';
+                        }
+                        var cell = m.At(i, j);
+                        rowText += Cell.CellValueToString(cell.CellValue);
 
-                        if (cell.Original) rowText += 'O';
+                        if (cell.Original)
+                        {
+                            rowText += 'O';
+                        }
                     }
 
-                    sr.WriteLine( rowText );
+                    sr.WriteLine(rowText);
                 }
+            }
+        }
+
+        public class MatrixFileException : ApplicationException
+        {
+            public MatrixFileException(string message) : base(message)
+            {
             }
         }
     }

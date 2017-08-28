@@ -18,25 +18,33 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
-using SimonSebright.Sudoku;
 using SimonSebright.Sudoku.Analyser;
+using SimonSebright.Sudoku.Utilities;
 
 namespace SimonSebright.SudokuUI
 {
     public partial class MainForm : Form
     {
+        private bool m_dirty;
+
+        private string m_fileName;
+
         public MainForm()
         {
             InitializeComponent();
         }
 
-        private delegate void UIDelegate();
+        private bool Dirty
+        {
+            get => m_dirty;
+            set
+            {
+                m_dirty = value;
+                UpdateControls();
+            }
+        }
 
         private void PerformUIConfirmAction(UIDelegate func)
         {
@@ -57,37 +65,34 @@ namespace SimonSebright.SudokuUI
 
         private bool ConfirmScrap()
         {
-            bool scrapable = !Dirty;
+            var scrapable = !Dirty;
 
             if (!scrapable)
             {
-                DialogResult dr =
+                var dr =
                     MessageBox.Show("The puzzle has changed. Save changes?",
-                                        "Save changes?",
-                                        MessageBoxButtons.YesNoCancel,
-                                        MessageBoxIcon.Question,
-                                        MessageBoxDefaultButton.Button3);
+                        "Save changes?",
+                        MessageBoxButtons.YesNoCancel,
+                        MessageBoxIcon.Question,
+                        MessageBoxDefaultButton.Button3);
 
-                if (dr == DialogResult.No) scrapable = true;
-                else if (dr == DialogResult.Cancel) scrapable = false;
-                else
+                switch (dr)
                 {
-                    SaveFile();
-                    scrapable = !Dirty;
+                    case DialogResult.No:
+                        scrapable = true;
+                        break;
+                    case DialogResult.Cancel:
+                        scrapable = false;
+                        break;
+                    default:
+                        SaveFile();
+                        scrapable = !Dirty;
+                        break;
                 }
             }
 
             return scrapable;
         }
-
-        private bool Dirty { 
-            get { return m_dirty; }
-            set { m_dirty = value;
-                UpdateControls();
-            }
-        }
-
-        private bool m_dirty = false;
 
         private void OnDirty(object senter, EventArgs e)
         {
@@ -155,12 +160,11 @@ namespace SimonSebright.SudokuUI
         {
             dlg.Filter = "Sudoku puzzles (*.sdk) | *.sdk" +
                          "|All files (*.*) | *.*";
-
-
         }
+
         private void OpenFile()
         {
-            OpenFileDialog ofd = new OpenFileDialog();
+            var ofd = new OpenFileDialog();
             ofd.Title = "Open existing puzzle";
             SetFileDialogFilter(ofd);
             if (ofd.ShowDialog() == DialogResult.OK)
@@ -171,8 +175,8 @@ namespace SimonSebright.SudokuUI
 
         private void OpenFile(string file)
         {
-            Matrix m = SimonSebright.Sudoku.Utilities.FileOperations.MatrixFromFile(file);
-            sudokuControl1.StartGame( m );
+            var m = FileOperations.MatrixFromFile(file);
+            sudokuControl1.StartGame(m);
             m_fileName = file;
             Dirty = false;
         }
@@ -201,11 +205,15 @@ namespace SimonSebright.SudokuUI
         {
             PerformUIAction(SaveFileAs);
         }
+
         private void SaveFile()
         {
             if (m_fileName == null)
             {
-                if ( SaveFileAsWithSuccess()) Dirty = false;
+                if (SaveFileAsWithSuccess())
+                {
+                    Dirty = false;
+                }
             }
             else if (SaveFile(m_fileName))
             {
@@ -220,13 +228,12 @@ namespace SimonSebright.SudokuUI
 
         private bool SaveFileAsWithSuccess()
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Title = "Save sudoku puzzle";
+            var sfd = new SaveFileDialog {Title = "Save sudoku puzzle"};
             SetFileDialogFilter(sfd);
 
-            bool result = (sfd.ShowDialog() == DialogResult.OK);
+            var result = sfd.ShowDialog() == DialogResult.OK;
 
-            if ( result )
+            if (result)
             {
                 SaveFile(sfd.FileName);
                 // This after in case of exceptions
@@ -239,7 +246,7 @@ namespace SimonSebright.SudokuUI
 
         private bool SaveFile(string fileName)
         {
-            SimonSebright.Sudoku.Utilities.FileOperations.MatrixToFile(sudokuControl1.Matrix, fileName);
+            FileOperations.MatrixToFile(sudokuControl1.Matrix, fileName);
             return true;
         }
 
@@ -260,7 +267,7 @@ namespace SimonSebright.SudokuUI
 
         private void UpdateUI(UIDelegate func)
         {
-            PerformUIAction( func );
+            PerformUIAction(func);
             UpdateControls();
         }
 
@@ -285,17 +292,16 @@ namespace SimonSebright.SudokuUI
             undoToolStripMenuItem.Enabled = StripButtonUndo.Enabled = sudokuControl1.CanUndo();
             redoToolStripMenuItem.Enabled = StripButtonRedo.Enabled = sudokuControl1.CanRedo();
 
-            StatusLabelMode.Text = string.Format( AppRes.ModeFormat, sudokuControl1.GameMode.ToString());
-            StatusLabelConsistent.Text = string.Format( AppRes.ConsistencyFormat, sudokuControl1.GameConsistency.ToString());
-            StatusLabelConsistent.ForeColor = (sudokuControl1.GameConsistency == Consistency.Inconsistent) ?
-                Color.Red : Color.Black;
-            StatusLabelMovesAvailable.Text = string.Format( AppRes.AvailableMovesFormat, sudokuControl1.NumberMoves );
+            StatusLabelMode.Text = string.Format(AppRes.ModeFormat, sudokuControl1.GameMode.ToString());
+            StatusLabelConsistent.Text = string.Format(AppRes.ConsistencyFormat, sudokuControl1.GameConsistency.ToString());
+            StatusLabelConsistent.ForeColor = sudokuControl1.GameConsistency == Consistency.Inconsistent ? Color.Red : Color.Black;
+            StatusLabelMovesAvailable.Text = string.Format(AppRes.AvailableMovesFormat, sudokuControl1.NumberMoves);
 
-            string text = string.Format( AppRes.TitleFormat,  
-                                         AppRes.AppTitle, 
-                                         m_fileName == null ? AppRes.UntitledName : m_fileName,
-                                         Dirty ? AppRes.ChangedIndicator  : string.Empty);
-            this.Text = text;
+            var text = string.Format(AppRes.TitleFormat,
+                AppRes.AppTitle,
+                m_fileName ?? AppRes.UntitledName,
+                Dirty ? AppRes.ChangedIndicator : string.Empty);
+            Text = text;
         }
 
         private void OnErrorInControl(Exception e)
@@ -305,20 +311,29 @@ namespace SimonSebright.SudokuUI
 
         private void ShowInfoTip(string message)
         {
-            ToolTip tip = new ToolTip();
-            tip.IsBalloon = true;
-            tip.InitialDelay = 0;
-            tip.ToolTipIcon = ToolTipIcon.Info;
-            Point client = PointToClient(Cursor.Position);
-            Control control = GetChildAtPoint( client );
-            control = control == null ? this : control;
+            var tip = new ToolTip
+            {
+                IsBalloon = true,
+                InitialDelay = 0,
+                ToolTipIcon = ToolTipIcon.Info
+            };
+            var client = PointToClient(Cursor.Position);
+            var control = GetChildAtPoint(client);
+            control = control ?? this;
 
-            tip.Show( message, control, control.PointToClient( Cursor.Position ), 3000);
+            tip.Show(message, control, control.PointToClient(Cursor.Position), 3000);
 
-            Timer timer = new Timer();
-            timer.Interval = 3000;
-            timer.Tag = tip;
-            timer.Tick += delegate(object sender, EventArgs e) { timer.Stop(); tip.Dispose(); timer.Dispose(); };
+            var timer = new Timer
+            {
+                Interval = 3000,
+                Tag = tip
+            };
+            timer.Tick += (sender, args) =>
+            {
+                timer.Stop();
+                tip.Dispose();
+                timer.Dispose();
+            };
             timer.Start();
         }
 
@@ -326,7 +341,7 @@ namespace SimonSebright.SudokuUI
         {
             if (!sudokuControl1.HasMoves)
             {
-                ShowInfoTip( AppRes.NoMoves );
+                ShowInfoTip(AppRes.NoMoves);
             }
 
             sudokuControl1.ToggleMoves();
@@ -354,11 +369,12 @@ namespace SimonSebright.SudokuUI
             UpdateControls();
         }
 
-        private string m_fileName;
-
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (Dirty && !ConfirmScrap()) e.Cancel = true;
+            if (Dirty && !ConfirmScrap())
+            {
+                e.Cancel = true;
+            }
         }
 
         private void StatusLabelMode_DoubleClick(object sender, EventArgs e)
@@ -395,6 +411,7 @@ namespace SimonSebright.SudokuUI
         {
             UICut();
         }
+
         private void UICut()
         {
             PerformUIAction(NotImplemented);
@@ -409,6 +426,7 @@ namespace SimonSebright.SudokuUI
         {
             UICopy();
         }
+
         private void UICopy()
         {
             PerformUIAction(NotImplemented);
@@ -423,6 +441,7 @@ namespace SimonSebright.SudokuUI
         {
             UIPaste();
         }
+
         private void UIPaste()
         {
             PerformUIAction(NotImplemented);
@@ -432,6 +451,7 @@ namespace SimonSebright.SudokuUI
         {
             UISelectAll();
         }
+
         private void UISelectAll()
         {
             PerformUIAction(NotImplemented);
@@ -441,6 +461,7 @@ namespace SimonSebright.SudokuUI
         {
             UICustomize();
         }
+
         private void UICustomize()
         {
             PerformUIAction(NotImplemented);
@@ -450,6 +471,7 @@ namespace SimonSebright.SudokuUI
         {
             UIOptions();
         }
+
         private void UIOptions()
         {
             PerformUIAction(NotImplemented);
@@ -459,6 +481,7 @@ namespace SimonSebright.SudokuUI
         {
             UIHelpContents();
         }
+
         private void UIHelpContents()
         {
             PerformUIAction(NotImplemented);
@@ -468,6 +491,7 @@ namespace SimonSebright.SudokuUI
         {
             UIHelpIndex();
         }
+
         private void UIHelpIndex()
         {
             PerformUIAction(NotImplemented);
@@ -477,6 +501,7 @@ namespace SimonSebright.SudokuUI
         {
             UIHelpSearch();
         }
+
         private void UIHelpSearch()
         {
             PerformUIAction(NotImplemented);
@@ -486,13 +511,14 @@ namespace SimonSebright.SudokuUI
         {
             UIHelpAbout();
         }
+
         private void UIHelpAbout()
         {
-            PerformUIAction( delegate() 
-                {
-                    AboutBox ab = new AboutBox();
-                    ab.ShowDialog();
-                });
+            PerformUIAction(() =>
+            {
+                var ab = new AboutBox();
+                ab.ShowDialog();
+            });
         }
 
         private void undoToolStripMenuItem_Click(object sender, EventArgs e)
@@ -507,12 +533,12 @@ namespace SimonSebright.SudokuUI
 
         private void UIUndo()
         {
-            PerformUIAction( delegate() { sudokuControl1.Undo(); } );
+            PerformUIAction(delegate() { sudokuControl1.Undo(); });
         }
 
         private void UIRedo()
         {
-            PerformUIAction( delegate() { sudokuControl1.Redo(); } );
+            PerformUIAction(delegate() { sudokuControl1.Redo(); });
         }
 
         private void StripButtonUndo_Click(object sender, EventArgs e)
@@ -532,14 +558,14 @@ namespace SimonSebright.SudokuUI
 
         private void UINewPuzzle()
         {
-            PerformUIConfirmAction( delegate()
+            PerformUIConfirmAction(delegate()
                 {
-                    Matrix m = WaitingDialog.GenerateNewPuzzle();
+                    var m = WaitingDialog.GenerateNewPuzzle();
                     if (m == null)
                     {
                         throw new SudokuException(AppRes.NoNewPuzzle);
                     }
-                    sudokuControl1.StartGame( m );
+                    sudokuControl1.StartGame(m);
                     // Treat as a new file
                     m_fileName = null;
                     Dirty = true;
@@ -561,18 +587,21 @@ namespace SimonSebright.SudokuUI
                         throw new SudokuException(AppRes.GameNotPlayed);
                     }
 
-                    Matrix m = sudokuControl1.Matrix.GetOriginalMatrix();
+                    var m = sudokuControl1.Matrix.GetOriginalMatrix();
 
-                    sudokuControl1.StartGame( m );
+                    sudokuControl1.StartGame(m);
                     Dirty = true;
                 }
             );
         }
 
+        private delegate void UIDelegate();
     }
 
-    class SudokuException : ApplicationException
+    internal class SudokuException : ApplicationException
     {
-        public SudokuException(string message) : base(message) { }
+        public SudokuException(string message) : base(message)
+        {
+        }
     }
 }

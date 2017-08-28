@@ -24,7 +24,9 @@ namespace SimonSebright.Sudoku
 {
     public class MatrixException : ApplicationException
     {
-        public MatrixException(string message) : base(message) { }
+        public MatrixException(string message) : base(message)
+        {
+        }
     }
 
     public static class Settings
@@ -56,15 +58,15 @@ namespace SimonSebright.Sudoku
 
     public class Cell
     {
+        private CellType m_cellType;
+        private CellValue m_cellValue;
+
+        private Matrix m_matrix;
+
         public Cell(CellValue cellValue, CellType cellType)
         {
             m_cellValue = cellValue;
             m_cellType = cellType;
-        }
-
-        internal Cell Clone()
-        {
-            return new Cell( m_cellValue, m_cellType );
         }
 
         internal Cell()
@@ -73,60 +75,13 @@ namespace SimonSebright.Sudoku
             m_cellValue = CellValue.Blank;
         }
 
-        public static List<CellValue> AllCellValues()
-        {
-            List<CellValue> cellValues = new List<CellValue>();
-
-            for (int i = 1; i <= Settings.GridSize; ++i)
-            {
-                cellValues.Add( (CellValue)i);
-            }
-
-            cellValues.Add(CellValue.Blank);
-
-            return cellValues;
-        }
-
-        public static List<CellValue> AllCellValuesRandom()
-        {
-            List<CellValue> straight = AllCellValues();
-            List<CellValue> random = new List<CellValue>();
-
-            Random r = new Random(DateTime.Now.Millisecond);
-
-            while (straight.Count > 0)
-            {
-                int i = r.Next( straight.Count );
-                random.Add( straight[i]);
-                straight.RemoveAt(i);
-            }
-
-            return random;
-        }
-
-        private void MakeThisBlankCell()
-        {
-            m_cellValue = CellValue.Blank;
-            m_cellType = CellType.Subsequent;
-        }
-
-        public static string CellValueToString(CellValue cellValue)
-        {
-            return cellValue == CellValue.Blank ? string.Empty : ((int)cellValue).ToString();
-        }
-
-        public override string ToString()
-        {
-            return CellValueToString(m_cellValue);
-        }
-
         public bool Original => m_cellType == CellType.Original && m_cellValue != CellValue.Blank;
 
         public CellValue CellValue => m_cellValue;
 
         public CellType CellType => m_cellType;
 
-        public int I => m_matrix.I( this );
+        public int I => m_matrix.I(this);
 
         public int J => m_matrix.J(this);
 
@@ -143,23 +98,108 @@ namespace SimonSebright.Sudoku
             set => m_matrix = value;
         }
 
-        private Matrix m_matrix;
-        private CellValue m_cellValue;
-        private CellType m_cellType;
+        internal Cell Clone()
+        {
+            return new Cell(m_cellValue, m_cellType);
+        }
 
-        public static Cell BlankCell() { return new Cell(CellValue.Blank, CellType.Original); }
-        public static Cell Cell1() { return new Cell(CellValue.One, CellType.Original); }
-        public static Cell Cell2() { return new Cell(CellValue.Two, CellType.Original); }
-        public static Cell Cell3() { return new Cell(CellValue.Three, CellType.Original); }
-        public static Cell Cell4() { return new Cell(CellValue.Four, CellType.Original); }
-        public static Cell Cell5() { return new Cell(CellValue.Five, CellType.Original); }
-        public static Cell Cell6() { return new Cell(CellValue.Six, CellType.Original); }
-        public static Cell Cell7() { return new Cell(CellValue.Seven, CellType.Original); }
-        public static Cell Cell8() { return new Cell(CellValue.Eight, CellType.Original); }
-        public static Cell Cell9() { return new Cell(CellValue.Nine, CellType.Original); }
+        public static List<CellValue> AllCellValues()
+        {
+            var cellValues = new List<CellValue>();
+
+            for (var i = 1; i <= Settings.GridSize; ++i)
+            {
+                cellValues.Add((CellValue) i);
+            }
+
+            cellValues.Add(CellValue.Blank);
+
+            return cellValues;
+        }
+
+        public static List<CellValue> AllCellValuesRandom()
+        {
+            var straight = AllCellValues();
+            var random = new List<CellValue>();
+
+            var r = new Random(DateTime.Now.Millisecond);
+
+            while (straight.Count > 0)
+            {
+                var i = r.Next(straight.Count);
+                random.Add(straight[i]);
+                straight.RemoveAt(i);
+            }
+
+            return random;
+        }
+
+        private void MakeThisBlankCell()
+        {
+            m_cellValue = CellValue.Blank;
+            m_cellType = CellType.Subsequent;
+        }
+
+        public static string CellValueToString(CellValue cellValue)
+        {
+            return cellValue == CellValue.Blank ? string.Empty : ((int) cellValue).ToString();
+        }
+
+        public override string ToString()
+        {
+            return CellValueToString(m_cellValue);
+        }
+
+        public static Cell BlankCell()
+        {
+            return new Cell(CellValue.Blank, CellType.Original);
+        }
+
+        public static Cell Cell1()
+        {
+            return new Cell(CellValue.One, CellType.Original);
+        }
+
+        public static Cell Cell2()
+        {
+            return new Cell(CellValue.Two, CellType.Original);
+        }
+
+        public static Cell Cell3()
+        {
+            return new Cell(CellValue.Three, CellType.Original);
+        }
+
+        public static Cell Cell4()
+        {
+            return new Cell(CellValue.Four, CellType.Original);
+        }
+
+        public static Cell Cell5()
+        {
+            return new Cell(CellValue.Five, CellType.Original);
+        }
+
+        public static Cell Cell6()
+        {
+            return new Cell(CellValue.Six, CellType.Original);
+        }
+
+        public static Cell Cell7()
+        {
+            return new Cell(CellValue.Seven, CellType.Original);
+        }
+
+        public static Cell Cell8()
+        {
+            return new Cell(CellValue.Eight, CellType.Original);
+        }
+
+        public static Cell Cell9()
+        {
+            return new Cell(CellValue.Nine, CellType.Original);
+        }
     }
-
-
 
     public abstract class CellExclusionGroup
     {
@@ -167,7 +207,7 @@ namespace SimonSebright.Sudoku
 
         public bool Contains(Cell cell)
         {
-            foreach (Cell member in GetCells())
+            foreach (var member in GetCells())
             {
                 if (member == cell)
                 {
@@ -180,7 +220,7 @@ namespace SimonSebright.Sudoku
 
         public bool ContainsValue(CellValue cellValue)
         {
-            foreach (Cell member in GetCells())
+            foreach (var member in GetCells())
             {
                 if (member.CellValue == cellValue)
                 {
@@ -194,6 +234,8 @@ namespace SimonSebright.Sudoku
 
     public class Row : CellExclusionGroup
     {
+        private readonly List<Cell> m_cells;
+
         public Row(List<Cell> cells)
         {
             m_cells = cells;
@@ -212,14 +254,15 @@ namespace SimonSebright.Sudoku
             }
         }
 
-        public override List<Cell> GetCells() { return m_cells; }
-
-        private readonly List<Cell> m_cells;
+        public override List<Cell> GetCells()
+        {
+            return m_cells;
+        }
 
         public static List<Cell> GetBlankRow()
         {
-            List<Cell> list = new List<Cell>();
-            for (int i = 0; i < Settings.GridSize; ++i)
+            var list = new List<Cell>();
+            for (var i = 0; i < Settings.GridSize; ++i)
             {
                 list.Add(Cell.BlankCell());
             }
@@ -230,6 +273,8 @@ namespace SimonSebright.Sudoku
 
     public class Column : CellExclusionGroup
     {
+        private readonly List<Cell> m_cells;
+
         internal Column(List<Cell> cells)
         {
             m_cells = cells;
@@ -248,13 +293,16 @@ namespace SimonSebright.Sudoku
             }
         }
 
-        public override List<Cell> GetCells() { return m_cells; }
-
-        private readonly List<Cell> m_cells;
+        public override List<Cell> GetCells()
+        {
+            return m_cells;
+        }
     }
 
     public class Square : CellExclusionGroup
     {
+        private readonly List<List<Cell>> m_rows;
+
         internal Square(List<List<Cell>> rows)
         {
             m_rows = rows;
@@ -280,19 +328,19 @@ namespace SimonSebright.Sudoku
 
         public override List<Cell> GetCells()
         {
-            List<Cell> cells = new List<Cell>();
-            foreach (List<Cell> row in m_rows)
+            var cells = new List<Cell>();
+            foreach (var row in m_rows)
             {
                 cells.AddRange(row);
             }
             return cells;
         }
-
-        private readonly List<List<Cell>> m_rows;
     }
 
     public class Matrix
     {
+        private readonly List<Row> m_rows;
+
         public Matrix(List<List<Cell>> rows)
         {
             if (rows.Count > Settings.GridSize)
@@ -301,7 +349,7 @@ namespace SimonSebright.Sudoku
             }
 
             m_rows = new List<Row>();
-            foreach (List<Cell> row in rows)
+            foreach (var row in rows)
             {
                 if (row.Count > Settings.GridSize)
                 {
@@ -313,28 +361,79 @@ namespace SimonSebright.Sudoku
             GiveCellsMatrixPointer();
         }
 
+        /// <summary>
+        ///     Gets a new blank matrix
+        /// </summary>
+        public static Matrix Blank
+        {
+            get
+            {
+                var rows = new List<List<Cell>>();
+
+                for (var i = 0; i < Settings.GridSize; ++i)
+                {
+                    rows.Add(Sudoku.Row.GetBlankRow());
+                }
+
+                return new Matrix(rows);
+            }
+        }
+
+        public bool HasSubsequentCells
+        {
+            get
+            {
+                foreach (var cell in Cells)
+                {
+                    if (cell.CellType == CellType.Subsequent &&
+                        cell.CellValue != CellValue.Blank)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        public List<Cell> Cells
+        {
+            get
+            {
+                var cells = new List<Cell>();
+                foreach (var row in GetRows())
+                {
+                    foreach (var cell in row.GetCells())
+                    {
+                        cells.Add(cell);
+                    }
+                }
+
+                return cells;
+            }
+        }
+
         public Matrix GetOriginalMatrix()
         {
-            List<List<Cell>> rows = new List<List<Cell>>();
+            var rows = new List<List<Cell>>();
 
-            foreach (Row row in m_rows)
+            foreach (var row in m_rows)
             {
-                List<Cell> newRow = new List<Cell>();
-                foreach( Cell cell in row.GetCells() )
+                var newRow = new List<Cell>();
+                foreach (var cell in row.GetCells())
                 {
-                    newRow.Add( cell.Original ? cell.Clone() : Cell.BlankCell() );
+                    newRow.Add(cell.Original ? cell.Clone() : Cell.BlankCell());
                 }
-                rows.Add( newRow );
+                rows.Add(newRow);
             }
 
-            return new Matrix( rows );
+            return new Matrix(rows);
         }
 
         private void GiveCellsMatrixPointer()
         {
-            foreach (Row row in m_rows)
+            foreach (var row in m_rows)
             {
-                foreach (Cell cell in row.GetCells())
+                foreach (var cell in row.GetCells())
                 {
                     cell.Matrix = this;
                 }
@@ -348,10 +447,10 @@ namespace SimonSebright.Sudoku
 
         internal int I(Cell cell)
         {
-            foreach (Row t in m_rows)
+            foreach (var t in m_rows)
             {
-                List<Cell> rowCells = t.GetCells();
-                for (int i = 0; i < rowCells.Count; ++i)
+                var rowCells = t.GetCells();
+                for (var i = 0; i < rowCells.Count; ++i)
                 {
                     if (rowCells[i] == cell)
                     {
@@ -365,10 +464,10 @@ namespace SimonSebright.Sudoku
 
         internal int J(Cell cell)
         {
-            for (int j = 0; j < m_rows.Count; ++j)
+            for (var j = 0; j < m_rows.Count; ++j)
             {
-                List<Cell> rowCells = m_rows[j].GetCells();
-                foreach (Cell t in rowCells)
+                var rowCells = m_rows[j].GetCells();
+                foreach (var t in rowCells)
                 {
                     if (t == cell)
                     {
@@ -392,7 +491,7 @@ namespace SimonSebright.Sudoku
 
         internal Row Row(Cell cell)
         {
-            foreach (Row row in m_rows)
+            foreach (var row in m_rows)
             {
                 if (row.Contains(cell))
                 {
@@ -410,10 +509,10 @@ namespace SimonSebright.Sudoku
 
         internal List<Column> GetColumns()
         {
-            List<Column> columns = new List<Column>();
-            for (int i = 0; i < Settings.GridSize; ++i)
+            var columns = new List<Column>();
+            for (var i = 0; i < Settings.GridSize; ++i)
             {
-                Column member = Column(i);
+                var member = Column(i);
                 columns.Add(member);
             }
 
@@ -422,7 +521,7 @@ namespace SimonSebright.Sudoku
 
         internal Column Column(Cell cell)
         {
-            foreach (Column member in GetColumns())
+            foreach (var member in GetColumns())
             {
                 if (member.Contains(cell))
                 {
@@ -435,11 +534,11 @@ namespace SimonSebright.Sudoku
 
         internal List<Square> GetSquares()
         {
-            List<Square> squares = new List<Square>();
+            var squares = new List<Square>();
 
-            for (int i = 0; i < Settings.GridSize; ++i)
+            for (var i = 0; i < Settings.GridSize; ++i)
             {
-                Square member = Square(i);
+                var member = Square(i);
                 squares.Add(member);
             }
 
@@ -448,7 +547,7 @@ namespace SimonSebright.Sudoku
 
         internal Square Square(Cell cell)
         {
-            foreach (Square member in GetSquares())
+            foreach (var member in GetSquares())
             {
                 if (member.Contains(cell))
                 {
@@ -459,12 +558,11 @@ namespace SimonSebright.Sudoku
             throw new ArgumentOutOfRangeException("Cell not found in Matrix for Square");
         }
 
-
         public Column Column(int i)
         {
-            List<Cell> cells = new List<Cell>();
+            var cells = new List<Cell>();
 
-            for (int j = 0; j < Settings.GridSize; ++j)
+            for (var j = 0; j < Settings.GridSize; ++j)
             {
                 cells.Add(Row(j)[i]);
             }
@@ -488,12 +586,12 @@ namespace SimonSebright.Sudoku
                 throw new ArgumentOutOfRangeException("Square access row out of range: " + j);
             }
 
-            List<List<Cell>> square = new List<List<Cell>>();
+            var square = new List<List<Cell>>();
 
-            for (int sj = j * Settings.SquareSize; sj < (j + 1) * Settings.SquareSize; ++sj)
+            for (var sj = j * Settings.SquareSize; sj < (j + 1) * Settings.SquareSize; ++sj)
             {
-                List<Cell> row = new List<Cell>();
-                for (int si = i * Settings.SquareSize; si < (i + 1) * Settings.SquareSize; ++si)
+                var row = new List<Cell>();
+                for (var si = i * Settings.SquareSize; si < (i + 1) * Settings.SquareSize; ++si)
                 {
                     row.Add(At(si, sj));
                 }
@@ -503,60 +601,49 @@ namespace SimonSebright.Sudoku
             return new Square(square);
         }
 
-        private readonly List<Row> m_rows;
-
         /// <summary>
-        /// Gets a new blank matrix
-        /// </summary>
-        public static Matrix Blank
-        {
-            get
-            {
-                List<List<Cell>> rows = new List<List<Cell>>();
-
-                for (int i = 0; i < Settings.GridSize; ++i)
-                {
-                    rows.Add(Sudoku.Row.GetBlankRow());
-                }
-
-                return new Matrix(rows);
-            }
-        }
-
-        /// <summary>
-        /// Gets all the exclusions groups for this matrix
+        ///     Gets all the exclusions groups for this matrix
         /// </summary>
         /// <returns></returns>
         public List<CellExclusionGroup> GetExclusionGroups()
         {
-            List<CellExclusionGroup> groups = new List<CellExclusionGroup>();
-            foreach (Row row in GetRows()) groups.Add(row);
-            foreach (Column column in GetColumns()) groups.Add( column );
-            foreach (Square square in GetSquares()) groups.Add( square );
+            var groups = new List<CellExclusionGroup>();
+            foreach (var row in GetRows())
+            {
+                groups.Add(row);
+            }
+            foreach (var column in GetColumns())
+            {
+                groups.Add(column);
+            }
+            foreach (var square in GetSquares())
+            {
+                groups.Add(square);
+            }
 
             return groups;
         }
 
         public Matrix MakeMove(Move move, CellType cellType)
         {
-            List<Move> moves = new List<Move> {move};
+            var moves = new List<Move> {move};
             return MakeMoves(moves, cellType);
         }
 
         /// <summary>
-        /// Makes a new matrix with the moves from the supplied list
+        ///     Makes a new matrix with the moves from the supplied list
         /// </summary>
         /// <param name="moves"></param>
         /// <returns></returns>
         public Matrix MakeMoves(List<Move> moves, CellType cellType)
         {
-            List<List<Cell>> rows = new List<List<Cell>>();
+            var rows = new List<List<Cell>>();
 
-            for (int j = 0; j < Settings.GridSize; ++j)
+            for (var j = 0; j < Settings.GridSize; ++j)
             {
-                List<Cell> row = new List<Cell>();
+                var row = new List<Cell>();
 
-                for (int i = 0; i < Settings.GridSize; ++i)
+                for (var i = 0; i < Settings.GridSize; ++i)
                 {
                     row.Add(GetCellForNewMatrix(i, j, moves, cellType));
                 }
@@ -567,9 +654,9 @@ namespace SimonSebright.Sudoku
             return new Matrix(rows);
         }
 
-        private Cell GetCellForNewMatrix(int i, int j, List<Move> moves, CellType cellType )
+        private Cell GetCellForNewMatrix(int i, int j, List<Move> moves, CellType cellType)
         {
-            foreach (Move move in moves)
+            foreach (var move in moves)
             {
                 if (move.I == i && move.J == j)
                 {
@@ -579,47 +666,25 @@ namespace SimonSebright.Sudoku
 
             return At(i, j).Clone();
         }
-
-        public bool HasSubsequentCells
-        {
-            get
-            {
-                foreach (Cell cell in Cells)
-                {
-                    if (cell.CellType == CellType.Subsequent &&
-                        cell.CellValue != CellValue.Blank ) 
-                        return true;
-                }
-                return false;
-            }
-        }
-
-        public List<Cell> Cells
-        {
-            get
-            {
-                List<Cell> cells = new List<Cell>();
-                foreach (Row row in GetRows())
-                {
-                    foreach (Cell cell in row.GetCells())
-                    {
-                        cells.Add(cell);
-                    }
-                }
-
-                return cells;
-            }
-        }
     }
 
     public class Move
     {
+        private readonly CellValue m_cellValue;
+
+        private readonly int m_i;
+        private readonly int m_j;
+
         public Move(int i, int j, CellValue cellValue)
         {
             m_i = i;
             m_j = j;
             m_cellValue = cellValue;
         }
+
+        public CellValue CellValue => m_cellValue;
+        public int I => m_i;
+        public int J => m_j;
 
         public override string ToString()
         {
@@ -634,14 +699,5 @@ namespace SimonSebright.Sudoku
                 default: return ToString();
             }
         }
-
-        public CellValue CellValue => m_cellValue;
-        public int I => m_i;
-        public int J => m_j;
-
-        private readonly int m_i;
-        private readonly int m_j;
-        private readonly CellValue m_cellValue;
     }
-
 }
