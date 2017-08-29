@@ -18,30 +18,29 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace SimonSebright.SudokuUI
 {
-    static class Program
+    internal static class Program
     {
         /// <summary>
-        /// The main entry point for the application.
+        ///     The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             try
             {
-                System.Windows.Forms.Application.EnableVisualStyles();
-                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                System.Windows.Forms.Application.Run(new MainForm());
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new MainForm());
             }
             catch (Exception e)
             {
-                MessageBox.Show( string.Format( AppRes.BigError, e.Message ),
-                                 AppRes.AppTitle
-                             );
+                MessageBox.Show(string.Format(AppRes.BigError, e.Message),
+                    AppRes.AppTitle
+                );
             }
         }
     }
