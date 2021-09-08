@@ -18,11 +18,8 @@
 */
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
+using System.Diagnostics;
 using System.Windows.Forms;
 using SimonSebright.Sudoku;
 using SimonSebright.Sudoku.Analyser;
@@ -31,6 +28,9 @@ namespace SimonSebright.SudokuUI
 {
     public partial class WaitingDialog : Form
     {
+        private readonly BackgroundWorker mBw = new BackgroundWorker();
+        private Matrix mM;
+
         public WaitingDialog()
         {
             InitializeComponent();
@@ -43,40 +43,35 @@ namespace SimonSebright.SudokuUI
 
         private void Cancel_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.Assert(!this.InvokeRequired);
-            m_bw.CancelAsync();
+            Debug.Assert(!InvokeRequired);
+            mBw.CancelAsync();
         }
 
         public static Matrix GenerateNewPuzzle()
         {
-            WaitingDialog dlg = new WaitingDialog();
+            var dlg = new WaitingDialog();
             return dlg.Go();
         }
 
         private void OnGeneratePuzzleComplete(object sender, RunWorkerCompletedEventArgs e)
         {
-            System.Diagnostics.Debug.Assert(!this.InvokeRequired);
-            m_m = (Matrix)e.Result;
+            Debug.Assert(!InvokeRequired);
+            mM = (Matrix) e.Result;
             Close();
         }
 
         private Matrix Go()
         {
-            m_bw.DoWork += Analyser.GenerateNewPuzzle;
-            m_bw.RunWorkerCompleted += this.OnGeneratePuzzleComplete;
-            m_bw.RunWorkerAsync();
-            m_bw.WorkerSupportsCancellation = true;
+            mBw.DoWork += Analyser.GenerateNewPuzzle;
+            mBw.RunWorkerCompleted += OnGeneratePuzzleComplete;
+            mBw.RunWorkerAsync();
+            mBw.WorkerSupportsCancellation = true;
             ShowDialog();
-            return m_m;
+            return mM;
         }
-
-        Matrix m_m;
-        BackgroundWorker m_bw = new BackgroundWorker();
 
         private void WaitingDialog_FormClosing(object sender, FormClosingEventArgs e)
         {
-
         }
-
     }
 }

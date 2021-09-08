@@ -168,7 +168,7 @@
     <comment>0 is app name, 1 is file, 2 is changed indicator if changed</comment>
   </data>
   <data name="UntitledName" xml:space="preserve">
-    <value>Untitlled</value>
+    <value>Untitled</value>
     <comment>name of new file, not yet saved</comment>
   </data>
   <data name="VersionFormat" xml:space="preserve">

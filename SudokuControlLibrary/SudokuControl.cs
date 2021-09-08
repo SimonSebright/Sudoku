@@ -20,21 +20,51 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.Windows.Forms.Design;
-using System.Windows.Forms.ComponentModel;
+using SimonSebright.Interfaces;
 using SimonSebright.Sudoku;
 using SimonSebright.Sudoku.Analyser;
-using SimonSebright.Interfaces;
 
 namespace SimonSebright.SudokuControlLibrary
 {
     [Designer(typeof(SudokuControlDesigner))]
     public partial class SudokuControl : Control, IUndoable
     {
+        public delegate void ErrorEvent(Exception e);
+
+        public enum Mode
+        {
+            Design,
+            Play
+        };
+
+        private static readonly Pen m_bigPen = new Pen(Color.Black, 2);
+        private static readonly Pen m_smallPen = new Pen(Color.Black, 1);
+
+        private readonly string BlankString = ControlRes.BlankText;
+        private readonly Stack<Matrix> m_redoStack = new Stack<Matrix>();
+
+        private readonly Stack<Matrix> m_undoStack = new Stack<Matrix>();
+
+        private List<Move> m_availableMoves = new List<Move>();
+
+        private Consistency m_consistency = Consistency.Indeterminate;
+        private int m_focusI = 0;
+        private int m_focusJ = 0;
+
+        private Point m_lastContextMenuClickPoint;
+
+        private Matrix m_m;
+        private Mode m_mode = Mode.Design;
+        private Brush m_moveBrush = Brushes.Black;
+        private Color m_moveColor = Color.Black;
+        private Font m_moveFont;
+
+        private Font m_originalFont;
+        private bool m_showMoves;
+
         public SudokuControl()
         {
             m_m = Matrix.Blank;
@@ -44,35 +74,35 @@ namespace SimonSebright.SudokuControlLibrary
             InitializeComponent();
 
             ContextMenuStrip = contextMenuStrip;
-            ToolStripMenuItem valueMenu = GetValueMenu();
+            var valueMenu = GetValueMenu();
 
-            foreach (CellValue cellValue in Cell.AllCellValues())
+            foreach (var cellValue in Cell.AllCellValues())
             {
-                string text = GetCellMenuText(cellValue);
-                ToolStripMenuItem item = new ToolStripMenuItem(text);
+                var text = GetCellMenuText(cellValue);
+                var item = new ToolStripMenuItem(text);
                 item.Tag = text;
                 item.ToolTipText = "Make this cell " + text;
                 item.Click += contextMenuStrip_ValueItemClicked;
                 valueMenu.DropDownItems.Add(item);
             }
 
-            foreach (ToolStripMenuItem item in GetModeMenu().DropDownItems )
+            foreach (ToolStripMenuItem item in GetModeMenu().DropDownItems)
             {
                 item.Click += contextMenuStrip_GameItemClicked;
             }
 
-            this.SetStyle(ControlStyles.UserPaint, true);
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            this.SetStyle(ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.UserPaint, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.DoubleBuffer, true);
         }
 
         /// <summary>
-        /// Use this to update the matrix being shown when normal user operations occur
-        /// Undo and Redo as well as Starting new games have special considerations
+        ///     Use this to update the matrix being shown when normal user operations occur
+        ///     Undo and Redo as well as Starting new games have special considerations
         /// </summary>
         public Matrix Matrix
         {
-            get { return m_m; }
+            get => m_m;
             private set
             {
                 // Redo goes out the window here
@@ -82,7 +112,172 @@ namespace SimonSebright.SudokuControlLibrary
             }
         }
 
-        private void SwitchMatrix( Matrix m )
+        public Consistency GameConsistency
+        {
+            get => m_consistency;
+            private set
+            {
+                m_consistency = value;
+                IssueConsistencyChangedEvent();
+            }
+        }
+
+        public bool ShowingMoves => m_showMoves;
+
+        public bool HasMoves => GameConsistency != Consistency.Inconsistent && NumberMoves > 0;
+
+        public int NumberMoves => GameConsistency == Consistency.Inconsistent ? 0 : m_availableMoves.Count;
+
+        public List<Move> AvailableMoves
+        {
+            get => m_availableMoves;
+            private set
+            {
+                m_availableMoves = value;
+                IssueAvailableMovesChangedEvent();
+            }
+        }
+
+        [Description("Mode the control will start in.  Design is usual with a blank grid!")]
+        [Category("Behaviour")]
+        public Mode GameMode
+        {
+            get => m_mode;
+            set
+            {
+                if (m_mode != value)
+                {
+                    if (value == Mode.Design && m_m.HasSubsequentCells)
+                    {
+                        throw new SudokoControlException("Cannot switch to design mode when moves have been played");
+                    }
+
+                    m_mode = value;
+                    ModeChanged?.Invoke(this, null);
+                }
+            }
+        }
+
+        [Description("Font used for cells of the original starting game")]
+        [Category("Appearance")]
+        public Font OriginalCellFont
+        {
+            get => m_originalFont;
+            set => m_originalFont = value;
+        }
+
+        [Description("Font used for available moves in the game")]
+        [Category("Appearance")]
+        public Font MoveFont
+        {
+            get => m_moveFont;
+            set => m_moveFont = value;
+        }
+
+        [Description("Colour used for available moves in the game")]
+        [Category("Appearance")]
+        public Color MoveColor
+        {
+            get => m_moveColor;
+            set
+            {
+                m_moveColor = value;
+                if (m_moveBrush != Brushes.Black)
+                {
+                    m_moveBrush.Dispose();
+                }
+
+                m_moveBrush = new SolidBrush(m_moveColor);
+            }
+        }
+
+        public Cell FocusCell => m_m.At(m_focusI, m_focusJ);
+
+        private StringFormat CellFormat
+        {
+            get
+            {
+                var sf = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center
+                };
+                return sf;
+            }
+        }
+
+        private float BigCellSizeX => (float) ClientRectangle.Width / Settings.NumSquares;
+
+        private float BigCellSizeY => (float) ClientRectangle.Height / Settings.NumSquares;
+
+        private float SmallCellSizeX => (float) ClientRectangle.Width / Settings.GridSize;
+
+        private float SmallCellSizeY => (float) ClientRectangle.Height / Settings.GridSize;
+
+        private Pen BigPen => m_bigPen;
+
+        private Pen SmallPen => m_smallPen;
+
+        private Matrix SampleMatrix
+        {
+            get
+            {
+                var rows = new List<List<Cell>>();
+
+                Cell[] cells1 = {Cell.Cell1(), Cell.Cell2(), Cell.Cell3(), Cell.Cell4(), Cell.Cell5(), Cell.Cell6(), Cell.Cell7(), Cell.Cell8(), Cell.BlankCell()};
+                var row = new List<Cell>();
+                row.AddRange(cells1);
+                rows.Add(row);
+
+                rows.Add(Row.GetBlankRow());
+                rows.Add(Row.GetBlankRow());
+
+                for (var j = 0; j < Settings.GridSize - Settings.SquareSize; ++j)
+                {
+                    rows.Add(Row.GetBlankRow());
+                }
+
+                return new Matrix(rows);
+            }
+        }
+
+        private Move SampleMove => new Move(8, 0, CellValue.Nine);
+
+        public bool CanUndo()
+        {
+            return m_undoStack.Count > 0;
+        }
+
+        public bool CanRedo()
+        {
+            return m_redoStack.Count > 0;
+        }
+
+        public void Undo()
+        {
+            if (CanUndo())
+            {
+                var current = m_m;
+                var next = m_undoStack.Pop();
+
+                m_redoStack.Push(m_m);
+                SwitchMatrix(next);
+            }
+        }
+
+        public void Redo()
+        {
+            if (CanRedo())
+            {
+                var current = m_m;
+                var next = m_redoStack.Pop();
+
+                m_undoStack.Push(m_m);
+                SwitchMatrix(next);
+            }
+        }
+
+        private void SwitchMatrix(Matrix m)
         {
             m_m = m;
             m_availableMoves.Clear();
@@ -94,20 +289,14 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void IssueUndoRedoChangedEvent()
         {
-            if (UndoRedoChangedEvent != null)
-            {
-                UndoRedoChangedEvent( this, null);
-            }
+            UndoRedoChangedEvent?.Invoke(this, null);
         }
 
         public event EventHandler IsDirtyEvent;
 
         private void IssueIsDirtyEvent()
         {
-            if (IsDirtyEvent != null)
-            {
-                IsDirtyEvent( this, null );
-            }
+            IsDirtyEvent?.Invoke(this, null);
 
             Invalidate();
         }
@@ -116,10 +305,7 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void IssueMatrixChangedEvent()
         {
-            if (MatrixChanged != null)
-            {
-                MatrixChanged(this, null);
-            }
+            MatrixChanged?.Invoke(this, null);
 
             m_availableMoves.Clear();
             m_showMoves = false;
@@ -132,40 +318,22 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void IssueAvailableMovesChangedEvent()
         {
-            if (AvailableMovesChanged != null)
-            {
-                AvailableMovesChanged(this, null);
-            }
+            AvailableMovesChanged?.Invoke(this, null);
         }
-        
-        public event EventHandler ConsistencyChanged;
 
-        public Consistency GameConsistency
-        {
-            get { return m_consistency; }
-            private set
-            {
-                m_consistency = value;
-                IssueConsistencyChangedEvent();
-            }
-        }
+        public event EventHandler ConsistencyChanged;
 
         private void IssueConsistencyChangedEvent()
         {
-            if (ConsistencyChanged != null)
-            {
-                ConsistencyChanged(this, null);
-            }
+            ConsistencyChanged?.Invoke(this, null);
         }
-        
-        private Consistency m_consistency = Consistency.Indeterminate;
 
         private void CalculateConsistency()
         {
             GameConsistency = Consistency.Calculating;
             // Based on the matrix as it is.  It's immutable, so set up a worker thread to report on it.
-            Analyser a = new Analyser( m_m );
-            BackgroundWorker bw = new BackgroundWorker();
+            var a = new Analyser(m_m);
+            var bw = new BackgroundWorker();
             bw.DoWork += a.CalculateConsistency;
             bw.RunWorkerCompleted += OnConsistencyCheckComplete;
             bw.RunWorkerAsync();
@@ -173,28 +341,33 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void OnConsistencyCheckComplete(object sender, RunWorkerCompletedEventArgs e)
         {
-            GameConsistency = (Consistency)e.Result;
+            GameConsistency = (Consistency) e.Result;
         }
 
         private void OnCalclateAvailableMovesComplete(object sender, RunWorkerCompletedEventArgs e)
         {
-            AvailableMoves  = (List<Move>)e.Result;
+            AvailableMoves = (List<Move>) e.Result;
         }
 
         private void CalculateAvailableMoves()
         {
-            Analyser a = new Analyser( m_m );
-            BackgroundWorker bw = new BackgroundWorker();
+            var a = new Analyser(m_m);
+            var bw = new BackgroundWorker();
             bw.DoWork += a.GetAvailableMoves;
             bw.RunWorkerCompleted += OnCalclateAvailableMovesComplete;
             bw.RunWorkerAsync();
         }
 
-        public bool ShowingMoves { get { return m_showMoves; } }
-
         public void ToggleMoves()
         {
-            if (ShowingMoves) HideMoves(); else ShowMoves();
+            if (ShowingMoves)
+            {
+                HideMoves();
+            }
+            else
+            {
+                ShowMoves();
+            }
         }
 
         public void ShowMoves()
@@ -215,23 +388,22 @@ namespace SimonSebright.SudokuControlLibrary
         }
 
         /// <summary>
-        /// Uses random value in list so that we don't always do something near the top
+        ///     Uses random value in list so that we don't always do something near the top
         /// </summary>
         public void MakeOneAvailableMove()
         {
             if (HasMoves)
             {
-                Random r = new Random( DateTime.Now.Millisecond);
-                Move move = m_availableMoves[r.Next(m_availableMoves.Count)];
-                MakeMove( move );
+                var r = new Random(DateTime.Now.Millisecond);
+                var move = m_availableMoves[r.Next(m_availableMoves.Count)];
+                MakeMove(move);
             }
         }
 
         private void MakeMove(Move move)
         {
-            List<Move> moves = new List<Move>();
-            moves.Add(move);
-            MakeMoves( moves );
+            var moves = new List<Move> {move};
+            MakeMoves(moves);
         }
 
         private CellType GetCurrentMoveCellType()
@@ -239,12 +411,11 @@ namespace SimonSebright.SudokuControlLibrary
             return GameMode == Mode.Design ? CellType.Original : CellType.Subsequent;
         }
 
-
         private void CheckMovesForOverwritingGameOrigin(List<Move> moves)
         {
-            if (this.GameMode == Mode.Play)
+            if (GameMode == Mode.Play)
             {
-                foreach (Move move in moves)
+                foreach (var move in moves)
                 {
                     if (m_m.At(move.I, move.J).Original)
                     {
@@ -254,36 +425,14 @@ namespace SimonSebright.SudokuControlLibrary
             }
         }
 
-        public void MakeMoves( List<Move> moves )
+        public void MakeMoves(List<Move> moves)
         {
             CheckMovesForOverwritingGameOrigin(moves);
-            this.Matrix = m_m.MakeMoves(moves, GetCurrentMoveCellType());
+            Matrix = m_m.MakeMoves(moves, GetCurrentMoveCellType());
             IssueIsDirtyEvent();
             IssueMatrixChangedEvent();
         }
 
-        public bool HasMoves
-        {
-            get { return (GameConsistency != Consistency.Inconsistent) && (NumberMoves > 0); }
-        }
-
-        public int NumberMoves
-        {
-            get { return (GameConsistency == Consistency.Inconsistent) ? 0 : m_availableMoves.Count; }
-        }
-
-        public List<Move> AvailableMoves
-        {
-            get { return m_availableMoves; }
-            private set
-            {
-                m_availableMoves = value;
-                IssueAvailableMovesChangedEvent();
-            }
-        }
-
-        public enum Mode { Design, Play };
-        private Mode m_mode = Mode.Design;
         public event EventHandler ModeChanged;
 
         public void ToggleMode()
@@ -291,66 +440,16 @@ namespace SimonSebright.SudokuControlLibrary
             GameMode = GameMode == Mode.Design ? Mode.Play : Mode.Design;
         }
 
-        [Description("Mode the control will start in.  Design is usual with a blank grid!")]
-        [Category("Behaviour")]
-        public Mode GameMode 
-        { 
-            get { return m_mode; }
-            set {
-                if ( m_mode != value )
-                {
-                    if (value == Mode.Design && m_m.HasSubsequentCells)
-                        throw new SudokoControlException("Cannot switch to design mode when moves have been played");
-
-                    m_mode = value;
-                    if ( ModeChanged != null ) ModeChanged(this, null);
-                }
-            }
-        }
-
-        [Description("Font used for cells of the original starting game")]
-        [Category("Appearance")]
-        public Font OriginalCellFont
-        {
-            get { return m_originalFont; }
-            set { m_originalFont = value; }
-        }
-
-        [Description("Font used for available moves in the game")]
-        [Category("Appearance")]
-        public Font MoveFont
-        {
-            get { return m_moveFont; }
-            set { m_moveFont = value; }
-        }
-
-        [Description("Colour used for available moves in the game")]
-        [Category("Appearance")]
-        public Color MoveColor
-        {
-            get { return m_moveColor; }
-            set 
-            { 
-                m_moveColor = value;
-                if (m_moveBrush != Brushes.Black)
-                {
-                    m_moveBrush.Dispose();
-                }
-
-                m_moveBrush = new SolidBrush(m_moveColor);
-            }
-        }
-
         public void StartNewGame()
         {
-            this.Matrix = Matrix.Blank;
+            Matrix = Matrix.Blank;
             m_mode = Mode.Design;
             ResetUndoRedo();
         }
 
-        public void StartGame( Matrix m )
+        public void StartGame(Matrix m)
         {
-            this.Matrix = m;
+            Matrix = m;
             GameMode = Mode.Play;
             ResetUndoRedo();
         }
@@ -358,33 +457,39 @@ namespace SimonSebright.SudokuControlLibrary
         protected override void OnPaint(PaintEventArgs pe)
         {
             if (DesignMode)
+            {
                 DrawDesigner(pe);
+            }
             else
+            {
                 DrawRuntime(pe);
+            }
         }
 
-        private void DrawDesigner( PaintEventArgs pe )
+        private void DrawDesigner(PaintEventArgs pe)
         {
             RenderGrid(pe, SampleMatrix);
             RenderMove(pe, m_m, SampleMove);
 
-            System.Drawing.Drawing2D.Matrix transform = new System.Drawing.Drawing2D.Matrix();
+            var transform = new System.Drawing.Drawing2D.Matrix();
             transform.RotateAt(-45, new Point(ClientRectangle.Width / 2, ClientRectangle.Height / 2));
             pe.Graphics.Transform = transform;
 
-            StringFormat sf = new StringFormat();
-            sf.Alignment = StringAlignment.Center;
-            sf.LineAlignment = StringAlignment.Center;
+            var sf = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
             pe.Graphics.DrawString("Form Design Mode!", Font, Brushes.Red, ClientRectangle, sf);
         }
 
         private void DrawRuntime(PaintEventArgs pe)
         {
-            RenderGrid( pe, m_m );
+            RenderGrid(pe, m_m);
 
             if (m_showMoves)
             {
-                RenderMoves( pe, m_m, m_availableMoves );
+                RenderMoves(pe, m_m, m_availableMoves);
             }
 
             if (Focused)
@@ -394,39 +499,39 @@ namespace SimonSebright.SudokuControlLibrary
         }
 
         /// <summary>
-        /// This one a pain, as we have to take into account rounding and the larger bars for the
-        /// bigger square drawing.
+        ///     This one a pain, as we have to take into account rounding and the larger bars for the
+        ///     bigger square drawing.
         /// </summary>
         /// <param name="i"></param>
         /// <param name="j"></param>
         /// <param name="m"></param>
         /// <returns></returns>
-        private Rectangle GetFocusRect( int i, int j, Matrix m )
+        private Rectangle GetFocusRect(int i, int j, Matrix m)
         {
-            RectangleF cellRectF = GetCellRect(i, j, m);
+            var cellRectF = GetCellRect(i, j, m);
             cellRectF.Offset(new PointF(0.5F, 0.5F));
             // Combat int rounding
-            Point tl = new Point((int)cellRectF.X, (int)cellRectF.Y);
-            Point br = new Point((int)cellRectF.Right, (int)cellRectF.Bottom );
-            Rectangle cellRect = new Rectangle(tl, new Size(br.X - tl.X, br.Y - tl.Y));
-            cellRect.Offset( 1, 1);
-            cellRect.Width -= ((i + 1) % Settings.SquareSize == 0) ? 2 : 1;
-            cellRect.Height -= ((j + 1) % Settings.SquareSize == 0) ? 2 : 1;
+            var tl = new Point((int) cellRectF.X, (int) cellRectF.Y);
+            var br = new Point((int) cellRectF.Right, (int) cellRectF.Bottom);
+            var cellRect = new Rectangle(tl, new Size(br.X - tl.X, br.Y - tl.Y));
+            cellRect.Offset(1, 1);
+            cellRect.Width -= (i + 1) % Settings.SquareSize == 0 ? 2 : 1;
+            cellRect.Height -= (j + 1) % Settings.SquareSize == 0 ? 2 : 1;
 
             return cellRect;
         }
 
         private void DrawFocusRect(Graphics g, int i, int j, Matrix m)
         {
-            ControlPaint.DrawFocusRectangle( g, GetFocusRect(i, j, m) );
+            ControlPaint.DrawFocusRectangle(g, GetFocusRect(i, j, m));
         }
 
         private void ChangeFocusTo(int i, int j)
         {
             if (i != m_focusI || j != m_focusJ)
             {
-                Graphics g = this.CreateGraphics();
-                Invalidate( GetFocusRect( m_focusI, m_focusJ, m_m));
+                var g = CreateGraphics();
+                Invalidate(GetFocusRect(m_focusI, m_focusJ, m_m));
                 DrawFocusRect(g, i, j, m_m);
                 m_focusI = i;
                 m_focusJ = j;
@@ -435,29 +540,18 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void MoveFocus(Size offset)
         {
-            int i = Math.Min( Math.Max( 0, m_focusI + offset.Width ), Settings.GridSize - 1);
-            int j = Math.Min( Math.Max( 0, m_focusJ + offset.Height), Settings.GridSize - 1);
+            var i = Math.Min(Math.Max(0, m_focusI + offset.Width), Settings.GridSize - 1);
+            var j = Math.Min(Math.Max(0, m_focusJ + offset.Height), Settings.GridSize - 1);
             ChangeFocusTo(i, j);
         }
 
-        public Cell FocusCell
-        {
-            get { return m_m.At(m_focusI, m_focusJ); }
-        }
-
-        public delegate void ErrorEvent(Exception e);
         public event ErrorEvent OnErrorOccurred;
+
         private void IssueErrorEvent(Exception e)
         {
-            if (OnErrorOccurred != null)
-            {
-                OnErrorOccurred(e);
-            }
+            OnErrorOccurred?.Invoke(e);
         }
 
-        private delegate void UIFunc();
-        private delegate void UIFuncCellValue(CellValue cellValue);
-        private delegate void UIFuncMode(Mode mode);
         private void ProtectedFunc(UIFunc func)
         {
             try { func(); }
@@ -466,6 +560,7 @@ namespace SimonSebright.SudokuControlLibrary
                 IssueErrorEvent(e);
             }
         }
+
         private void ProtectedFunc(UIFuncCellValue func, CellValue cellValue)
         {
             try { func(cellValue); }
@@ -488,7 +583,7 @@ namespace SimonSebright.SudokuControlLibrary
         {
             ProtectedFunc(delegate()
                 {
-                    Move move = new Move(m_focusI, m_focusJ, cellValue);
+                    var move = new Move(m_focusI, m_focusJ, cellValue);
                     MakeMove(move);
                 }
             );
@@ -496,7 +591,7 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void RenderMoves(PaintEventArgs pe, Matrix m, List<Move> moves)
         {
-            foreach (Move move in moves)
+            foreach (var move in moves)
             {
                 RenderMove(pe, m, move);
             }
@@ -513,49 +608,38 @@ namespace SimonSebright.SudokuControlLibrary
             RenderNumbers(pe, m);
         }
 
-        private void RenderLines( PaintEventArgs pe, Matrix m )
+        private void RenderLines(PaintEventArgs pe, Matrix m)
         {
             pe.Graphics.FillRectangle(Brushes.White, ClientRectangle);
             pe.Graphics.DrawRectangle(BigPen, ClientRectangle);
 
-            for (int i = 1; i <= Settings.GridSize - 1; ++i)
+            for (var i = 1; i <= Settings.GridSize - 1; ++i)
             {
-                float x = GridCellX(i);
-                Pen pen = i % Settings.SquareSize == 0 ? BigPen : SmallPen;
+                var x = GridCellX(i);
+                var pen = i % Settings.SquareSize == 0 ? BigPen : SmallPen;
 
                 pe.Graphics.DrawLine(pen, new PointF(x, 0), new PointF(x, ClientRectangle.Height));
             }
 
-            for (int j = 1; j <= Settings.GridSize - 1; ++j)
+            for (var j = 1; j <= Settings.GridSize - 1; ++j)
             {
-                float y = GridCellY(j);
-                Pen pen = j % Settings.SquareSize == 0 ? BigPen : SmallPen;
+                var y = GridCellY(j);
+                var pen = j % Settings.SquareSize == 0 ? BigPen : SmallPen;
 
                 pe.Graphics.DrawLine(pen, new PointF(0, y), new PointF(ClientRectangle.Width, y));
             }
-
         }
 
-        private StringFormat CellFormat
-        {
-            get
-            {
-                StringFormat sf = new StringFormat();
-                sf.Alignment = StringAlignment.Center;
-                sf.LineAlignment = StringAlignment.Center;
-                return sf;
-            }
-        }
         private void RenderNumbers(PaintEventArgs pe, Matrix m)
         {
-            Font normal = Font;
+            var normal = Font;
             {
-                for (int i = 0; i < Settings.GridSize; ++i)
+                for (var i = 0; i < Settings.GridSize; ++i)
                 {
-                    for (int j = 0; j < Settings.GridSize; ++j)
+                    for (var j = 0; j < Settings.GridSize; ++j)
                     {
-                        Font font = m.At(i, j).Original ? m_originalFont : normal;
-                        RenderCellValue(pe, m, i, j, m.At( i, j ).ToString(), font);
+                        var font = m.At(i, j).Original ? m_originalFont : normal;
+                        RenderCellValue(pe, m, i, j, m.At(i, j).ToString(), font);
                     }
                 }
             }
@@ -563,98 +647,55 @@ namespace SimonSebright.SudokuControlLibrary
 
         private void RenderCellValue(PaintEventArgs pe, Matrix m, int i, int j, string text, Font font)
         {
-            RectangleF cellRect = GetCellRect(i, j, m);
+            var cellRect = GetCellRect(i, j, m);
             pe.Graphics.DrawString(text, font, Brushes.Black, cellRect, CellFormat);
         }
 
         private void RenderCellValue(PaintEventArgs pe, Matrix m, int i, int j, string text, Font font, Brush brush)
         {
-            RectangleF cellRect = GetCellRect(i, j, m);
+            var cellRect = GetCellRect(i, j, m);
             pe.Graphics.DrawString(text, font, brush, cellRect, CellFormat);
         }
 
         private RectangleF GetCellRect(int i, int j, Matrix m)
         {
             return new RectangleF(new PointF(GridCellX(i), GridCellY(j)),
-                                  new SizeF(SmallCellSizeX, SmallCellSizeY));
+                new SizeF(SmallCellSizeX, SmallCellSizeY));
         }
 
         private float GridCellX(int i)
         {
-            return (i * SmallCellSizeX);
+            return i * SmallCellSizeX;
         }
 
         private float GridCellY(int j)
         {
-            return (j * SmallCellSizeY);
+            return j * SmallCellSizeY;
         }
-
-
-        private float BigCellSizeX { get { return (float)ClientRectangle.Width / Settings.NumSquares; } }
-        private float BigCellSizeY { get { return (float)ClientRectangle.Height / Settings.NumSquares; } }
-        private float SmallCellSizeX { get { return (float)ClientRectangle.Width / Settings.GridSize; } }
-        private float SmallCellSizeY { get { return (float)ClientRectangle.Height / Settings.GridSize; } }
-
-        private Pen BigPen { get { return m_bigPen; } }
-        private Pen SmallPen { get { return m_smallPen; } }
-
-        static Pen m_bigPen = new Pen(Color.Black, 2);
-        static Pen m_smallPen = new Pen(Color.Black, 1);
-
-        private Matrix SampleMatrix
-        {
-            get
-            {
-                List<List<Cell>> rows = new List<List<Cell>>();
-
-                Cell[] cells1 = { Cell.Cell1(), Cell.Cell2(), Cell.Cell3(), Cell.Cell4(), Cell.Cell5(), Cell.Cell6(), Cell.Cell7(), Cell.Cell8(), Cell.BlankCell() };
-                List<Cell> row = new List<Cell>();
-                row.AddRange(cells1);
-                rows.Add(row);
-
-                rows.Add(Row.GetBlankRow());
-                rows.Add(Row.GetBlankRow());
-
-                for (int j = 0; j < Settings.GridSize - Settings.SquareSize; ++j)
-                {
-                    rows.Add(Row.GetBlankRow());
-                }
-
-                return new Matrix(rows);
-            }
-        }
-
-        private Move SampleMove { get { return new Move(8, 0, CellValue.Nine); } }
 
         private void contextMenuStrip_ValueItemClicked(object sender, EventArgs e)
         {
-            string text = ((ToolStripItem)sender).Tag.ToString();
-            CellValue cellValue = GetCellValueFromMenuText( text );
+            var text = ((ToolStripItem) sender).Tag.ToString();
+            var cellValue = GetCellValueFromMenuText(text);
 
-            ProtectedFunc( delegate( CellValue moveValue )
+            ProtectedFunc(delegate(CellValue moveValue)
                 {
-                    Cell clickedCell = HitTestCellOrFocus(m_lastContextMenuClickPoint);
+                    var clickedCell = HitTestCellOrFocus(m_lastContextMenuClickPoint);
 
-                    Move move = new Move(clickedCell.I, clickedCell.J, cellValue);
-                    List<Move> moves = new List<Move>();
-                    moves.Add(move);
-
+                    var move = new Move(clickedCell.I, clickedCell.J, cellValue);
+                    var moves = new List<Move> {move};
                     MakeMoves(moves);
                 },
                 cellValue
             );
-
         }
 
         private void contextMenuStrip_GameItemClicked(object sender, EventArgs e)
         {
-            string text = ((ToolStripItem)sender).Tag.ToString();
-            Mode mode = (Mode)Enum.Parse(typeof( Mode ), text);
+            var text = ((ToolStripItem) sender).Tag.ToString();
+            var mode = (Mode) Enum.Parse(typeof(Mode), text);
 
-            ProtectedFunc(delegate(Mode modeValue)
-                {
-                    GameMode = modeValue;
-                },
+            ProtectedFunc(delegate(Mode modeValue) { GameMode = modeValue; },
                 mode
             );
         }
@@ -666,29 +707,29 @@ namespace SimonSebright.SudokuControlLibrary
 
         private ToolStripMenuItem GetValueMenu()
         {
-            return ((ToolStripMenuItem)contextMenuStrip.Items["MenuItemValues"]);
+            return (ToolStripMenuItem) contextMenuStrip.Items["MenuItemValues"];
         }
 
         private ToolStripMenuItem GetModeMenu()
         {
-            return ((ToolStripMenuItem)contextMenuStrip.Items["MenuItemGameMode"]);
+            return (ToolStripMenuItem) contextMenuStrip.Items["MenuItemGameMode"];
         }
 
         private void contextMenuStrip_Opening(object sender, CancelEventArgs e)
         {
-            m_lastContextMenuClickPoint = PointToClient(Control.MousePosition);
+            m_lastContextMenuClickPoint = PointToClient(MousePosition);
 
-            Cell cell = HitTestCellOrFocus( m_lastContextMenuClickPoint );
-            ToolStripMenuItem menu = GetValueMenu();
+            var cell = HitTestCellOrFocus(m_lastContextMenuClickPoint);
+            var menu = GetValueMenu();
 
             foreach (ToolStripMenuItem item in menu.DropDownItems)
             {
-                item.Checked = ( GetCellMenuText(cell.CellValue)== item.Tag.ToString());
+                item.Checked = GetCellMenuText(cell.CellValue) == item.Tag.ToString();
             }
 
             foreach (ToolStripMenuItem item in GetModeMenu().DropDownItems)
             {
-                item.Checked = (GameMode.ToString() == item.Tag.ToString());
+                item.Checked = GameMode.ToString() == item.Tag.ToString();
             }
         }
 
@@ -706,9 +747,9 @@ namespace SimonSebright.SudokuControlLibrary
 
         private Cell HitTestCell(Point pt)
         {
-            for (int i = 0; i < Settings.GridSize; ++i)
+            for (var i = 0; i < Settings.GridSize; ++i)
             {
-                for (int j = 0; j < Settings.GridSize; ++j)
+                for (var j = 0; j < Settings.GridSize; ++j)
                 {
                     if (GetCellRect(i, j, m_m).Contains(pt))
                     {
@@ -717,16 +758,12 @@ namespace SimonSebright.SudokuControlLibrary
                 }
             }
 
-            throw new SudokoControlException("Requested point not in control: " + pt.ToString());
+            throw new SudokoControlException("Requested point not in control: " + pt);
         }
-
-        private Point m_lastContextMenuClickPoint;
-        private int m_focusI = 0;
-        private int m_focusJ = 0;
 
         private void SudokuControl_MouseDown(object sender, MouseEventArgs e)
         {
-            Cell cell = HitTestCell(e.Location);
+            var cell = HitTestCell(e.Location);
             ChangeFocusTo(cell.I, cell.J);
         }
 
@@ -746,14 +783,23 @@ namespace SimonSebright.SudokuControlLibrary
                 default: return base.IsInputKey(keyData);
             }
         }
+
         private void SudokuControl_KeyDown(object sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
             {
-                case Keys.Right: MoveFocus(new Size(1, 0)); break;
-                case Keys.Left: MoveFocus(new Size(-1, 0)); break;
-                case Keys.Down: MoveFocus(new Size(0, 1)); break;
-                case Keys.Up: MoveFocus(new Size(0, -1)); break;
+                case Keys.Right:
+                    MoveFocus(new Size(1, 0));
+                    break;
+                case Keys.Left:
+                    MoveFocus(new Size(-1, 0));
+                    break;
+                case Keys.Down:
+                    MoveFocus(new Size(0, 1));
+                    break;
+                case Keys.Up:
+                    MoveFocus(new Size(0, -1));
+                    break;
                 default: break;
             }
         }
@@ -762,7 +808,7 @@ namespace SimonSebright.SudokuControlLibrary
         {
             if (e.KeyChar >= '1' && e.KeyChar <= '9')
             {
-                CellValue cellValue = (CellValue)(int)((e.KeyChar - '1') + 1);
+                var cellValue = (CellValue) (e.KeyChar - '1' + 1);
                 MoveAtFocus(cellValue);
             }
             else if (e.KeyChar == ' ')
@@ -771,67 +817,16 @@ namespace SimonSebright.SudokuControlLibrary
             }
         }
 
-        Matrix m_m;
-
-        Font m_originalFont;
-        Font m_moveFont;
-        Color m_moveColor = Color.Black;
-        Brush m_moveBrush = Brushes.Black;
-
-        List<Move> m_availableMoves = new List<Move>();
-        bool m_showMoves = false;
-
-        readonly string BlankString = ControlRes.BlankText;
-
-        private Stack<Matrix> m_undoStack = new Stack<Matrix>();
-        private Stack<Matrix> m_redoStack = new Stack<Matrix>();
-
         private string GetCellMenuText(CellValue cellValue)
         {
-            string text = Cell.CellValueToString(cellValue);
-            text = (text == string.Empty) ? BlankString : text;
+            var text = Cell.CellValueToString(cellValue);
+            text = text == string.Empty ? BlankString : text;
             return text;
         }
 
         private CellValue GetCellValueFromMenuText(string text)
         {
-            return text == BlankString ? CellValue.Blank : (CellValue)int.Parse(text);
-        }
-
-        #region IUndoable Members
-
-        public bool CanUndo()
-        {
-            return m_undoStack.Count > 0;
-        }
-
-        public bool CanRedo()
-        {
-            return m_redoStack.Count > 0;
-        }
-
-        public void Undo()
-        {
-            if (CanUndo())
-            {
-                Matrix current = m_m;
-                Matrix next = m_undoStack.Pop();
-
-                m_redoStack.Push(m_m);
-                SwitchMatrix(next);
-            }
-        }
-
-        public void Redo()
-        {
-            if (CanRedo())
-            {
-                Matrix current = m_m;
-                Matrix next = m_redoStack.Pop();
-
-                m_undoStack.Push(m_m);
-                SwitchMatrix(next);
-            }
+            return text == BlankString ? CellValue.Blank : (CellValue) int.Parse(text);
         }
 
         private void ResetUndoRedo()
@@ -841,15 +836,14 @@ namespace SimonSebright.SudokuControlLibrary
             IssueUndoRedoChangedEvent();
         }
 
-        #endregion
+        private delegate void UIFunc();
+
+        private delegate void UIFuncCellValue(CellValue cellValue);
+
+        private delegate void UIFuncMode(Mode mode);
     }
 
-    public class SudokoControlException : ApplicationException
-    {
-        public SudokoControlException(string message) : base(message) { }
-    }
-
-    class SudokuControlDesigner : System.Windows.Forms.Design.ControlDesigner
+    internal class SudokuControlDesigner : ControlDesigner
     {
     }
 }

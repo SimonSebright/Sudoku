@@ -18,11 +18,6 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.Reflection;
 
@@ -64,7 +59,7 @@ namespace SimonSebright.SudokuUI
 
         private void AboutBox_Load(object sender, EventArgs e)
         {
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+            var a = Assembly.GetExecutingAssembly();
             string version = a.GetName().Version.ToString();
             LabelVersion.Text = string.Format(AppRes.VersionFormat, version);
 
